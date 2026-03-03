@@ -1,35 +1,39 @@
 import React from "react";
 import { Cell } from "./Cell";
-import type { Position } from "../types";
+import type { Position, CellKind } from "../types";
 
 type Props = {
   size: number;
-  robot: Position | null;
+  robot: Position;
   start: Position;
   finish: Position;
+  walls: Position[];
   onCellClick: (row: number, col: number) => void;
 };
+
+const isSame = (a: Position, b: Position) =>
+  a.row === b.row && a.col === b.col;
 
 export const Grid: React.FC<Props> = ({
   size,
   robot,
   start,
   finish,
+  walls,
   onCellClick,
 }) => {
   const cells = [];
 
   for (let row = 0; row < size; row++) {
     for (let col = 0; col < size; col++) {
-      let type: "empty" | "robot" | "start" | "finish" = "empty";
+      const current = { row, col };
 
-      if (robot?.row === row && robot?.col === col) {
-        type = "robot";
-      } else if (start.row === row && start.col === col) {
-        type = "start";
-      } else if (finish.row === row && finish.col === col) {
-        type = "finish";
-      }
+      let type: CellKind = "empty";
+
+      if (isSame(robot, current)) type = "robot";
+      else if (isSame(start, current)) type = "start";
+      else if (isSame(finish, current)) type = "finish";
+      else if (walls.some(w => isSame(w, current))) type = "wall";
 
       cells.push(
         <Cell

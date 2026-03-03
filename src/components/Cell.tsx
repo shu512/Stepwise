@@ -1,13 +1,12 @@
 import React from "react";
-
-type CellType = "empty" | "robot" | "start" | "finish";
+import type { CellKind } from "../types";
 
 type Props = {
-  type: CellType;
+  type: CellKind;
   onClick: () => void;
 };
 
-const getColor = (type: CellType) => {
+const getColor = (type: CellKind) => {
   switch (type) {
     case "robot":
       return "#4caf50";
@@ -15,6 +14,8 @@ const getColor = (type: CellType) => {
       return "#2196f3";
     case "finish":
       return "#f44336";
+    case "wall":
+      return "#333333";
     default:
       return "#ffffff";
   }
@@ -29,6 +30,7 @@ export const Cell: React.FC<Props> = ({ type, onClick }) => {
         height: 50,
         border: "1px solid #ccc",
         backgroundColor: getColor(type),
+        boxSizing: "border-box",
         cursor: "pointer",
       }}
     />
