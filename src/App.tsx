@@ -1,106 +1,107 @@
-import React, { useState, useRef } from "react";
+import React from "react";
 import { Grid } from "./components/Grid";
-import type { Position, Command } from "./types";
+import { Controls } from "./components/Controls";
+import { ProgramDisplay } from "./components/ProgramDisplay";
+import { useRobot } from "./hooks/useRobot";
+import { useWalls } from "./hooks/useWalls";
+import { useProgram } from "./hooks/useProgram";
+import { LOOP_COLORS } from "./constants";
+import { flatten } from "./utils/program";
 
-const GRID_SIZE = 8;
-const STEP_DELAY = 400;
-
-const move = (
-  pos: Position,
-  command: Command,
-  size: number
-): Position => {
-  let { row, col } = pos;
-
-  switch (command) {
-    case "UP":
-      row--;
-      break;
-    case "DOWN":
-      row++;
-      break;
-    case "LEFT":
-      col--;
-      break;
-    case "RIGHT":
-      col++;
-      break;
-  }
-
-  if (row < 0 || col < 0 || row >= size || col >= size) {
-    return pos;
-  }
-
-  return { row, col };
+const NOTEBOOK_BG: React.CSSProperties = {
+  minHeight: "100vh",
+  background: "#f5f0e8",
+  backgroundSize: "48px 48px",
+  display: "flex", flexDirection: "column",
+  alignItems: "center", justifyContent: "center",
+  gap: 16, padding: 24,
+  fontFamily: "monospace",
+  color: "#2a2a2a",
 };
 
 const App: React.FC = () => {
-  const start: Position = { row: 0, col: 0 };
-  const finish: Position = { row: 7, col: 7 };
-
-  const [robot, setRobot] = useState<Position>(start);
-  const [program, setProgram] = useState<Command[]>([
-    "RIGHT",
-    "RIGHT",
-    "DOWN",
-    "DOWN",
-  ]);
-  const [isRunning, setIsRunning] = useState(false);
-
-  const intervalRef = useRef<number | null>(null);
-
-  const handleCellClick = (row: number, col: number) => {
-    if (isRunning) return;
-    setRobot({ row, col });
-  };
-
-  const runProgram = () => {
-    if (isRunning) return;
-
-    setIsRunning(true);
-    let step = 0;
-
-    intervalRef.current = window.setInterval(() => {
-      setRobot((prev) => {
-        if (step >= program.length) {
-          clearInterval(intervalRef.current!);
-          setIsRunning(false);
-          return prev;
-        }
-
-        const next = move(prev, program[step], GRID_SIZE);
-        step++;
-        return next;
-      });
-    }, STEP_DELAY);
-  };
+  const { walls, wallsRef, toggleWall } = useWalls();
+  const { robot, isRunning, message, runProgram, reset } = useRobot(wallsRef);
+  const {
+    editStack, addCommand, removeAt,
+    undo, clearProgram, loopStart, loopEnd, isInLoop,
+  } = useProgram();
 
   return (
-    <div
-      style={{
-        height: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        flexDirection: "column",
-        backgroundColor: "#f5f5f5",
-      }}
-    >
-      <Grid
-        size={GRID_SIZE}
-        robot={robot}
-        start={start}
-        finish={finish}
-        onCellClick={handleCellClick}
+    <div style={NOTEBOOK_BG}>
+      <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.05em", color: "#6b5344" }}>
+        robot programmer
+      </div>
+
+      <Grid robot={robot} walls={walls} onCellClick={toggleWall} />
+
+      <Controls
+        isRunning={isRunning}
+        isInLoop={isInLoop}
+        onCommand={addCommand}
+        onLoopStart={loopStart}
+        onLoopEnd={loopEnd}
+        onUndo={undo}
+        onClear={clearProgram}
+        onRun={() => {
+          if (isInLoop) { alert("Закрой цикл (LOOP END)!"); return; }
+          runProgram(editStack[0]);
+        }}
+        onReset={reset}
       />
 
-      <button
-        onClick={runProgram}
-        disabled={isRunning}
-        style={{ marginTop: 20 }}
-      >
-        Run
-      </button>
+      {isInLoop && (
+        <div style={{
+          fontSize: 12, color: "#a0522d",
+          border: "1px dashed #a0522d",
+          padding: "4px 10px", borderRadius: 3,
+        }}>
+          записываю тело цикла (глубина {editStack.length - 1}) — нажми LOOP END
+        </div>
+      )}
+
+      <div style={{
+        width: "100%", maxWidth: 600, minHeight: 56,
+        border: "1px solid #b0a090",
+        borderRadius: 3, padding: 10,
+        background: "#fdfaf4",
+      }}>
+        <div style={{ fontSize: 10, color: "#a09080", marginBottom: 6, letterSpacing: "0.06em" }}>
+          ПРОГРАММА {editStack[0].length > 0 && `· ${flatten(editStack[0]).length} шагов`}
+        </div>
+
+        {editStack[0].length > 0
+          ? <ProgramDisplay items={editStack[0]} depth={0} onRemove={isRunning ? undefined : removeAt} />
+          : <span style={{ color: "#c0b0a0", fontSize: 12 }}>пусто</span>
+        }
+
+        {editStack.slice(1).map((ctx, i) => {
+          const palette = LOOP_COLORS[(i + 1) % LOOP_COLORS.length];
+          return (
+            <div key={i} style={{
+              marginTop: 8, padding: "6px 8px",
+              border: `1px dashed ${palette.border}`,
+              borderRadius: 3, background: palette.bg,
+            }}>
+              <div style={{ fontSize: 10, color: palette.border, marginBottom: 4, fontWeight: 700 }}>
+                тело цикла — уровень {i + 1}
+              </div>
+              {ctx.length > 0
+                ? <ProgramDisplay items={ctx} depth={i + 1} />
+                : <span style={{ color: "#999", fontSize: 11 }}>пусто</span>
+              }
+            </div>
+          );
+        })}
+      </div>
+
+      {message && (
+        <div style={{ fontSize: 15, fontWeight: 700, color: "#2a9d8f" }}>{message}</div>
+      )}
+
+      <div style={{ fontSize: 10, color: "#b0a090" }}>
+        клик по ячейке — стена · клик по команде — удалить
+      </div>
     </div>
   );
 };
