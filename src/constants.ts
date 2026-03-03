@@ -3,18 +3,15 @@ import type { Position } from "./types";
 export const GRID_SIZE = 8;
 export const STEP_DELAY = 350;
 
-export const START: Position = { row: 0, col: 0 };
-export const FINISH: Position = { row: 7, col: 7 };
+export const DEFAULT_START: Position = { row: 0, col: 0 };
+export const DEFAULT_FINISH: Position = { row: 7, col: 7 };
 
 export const CMD_ARROW: Record<string, string> = {
   UP: "↑", DOWN: "↓", LEFT: "←", RIGHT: "→",
 };
 
 export const CMD_COLOR: Record<string, string> = {
-  UP:    "#f9c74f",
-  DOWN:  "#90be6d",
-  LEFT:  "#f8961e",
-  RIGHT: "#43aa8b",
+  UP: "#f9c74f", DOWN: "#90be6d", LEFT: "#f8961e", RIGHT: "#43aa8b",
 };
 
 export const LOOP_COLORS = [

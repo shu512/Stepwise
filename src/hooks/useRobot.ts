@@ -1,12 +1,15 @@
 import { useState, useRef } from "react";
-import type { Position } from "../types";
-import { START, FINISH, STEP_DELAY } from "../constants";
+import type { Position, ProgramItem } from "../types";
+import { STEP_DELAY } from "../constants";
 import { move, isSame, flatten } from "../utils/program";
-import type { ProgramItem } from "../types";
 
-export const useRobot = (wallsRef: React.MutableRefObject<Position[]>) => {
-  const [robot, setRobot] = useState<Position>(START);
-  const robotRef = useRef<Position>(START);
+export const useRobot = (
+  wallsRef: React.MutableRefObject<Position[]>,
+  start: Position,
+  finish: Position,
+) => {
+  const [robot, setRobot] = useState<Position>(start);
+  const robotRef = useRef<Position>(start);
 
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState("");
@@ -21,8 +24,8 @@ export const useRobot = (wallsRef: React.MutableRefObject<Position[]>) => {
 
     flatRef.current = flat;
     setMessage("");
-    robotRef.current = START;
-    setRobot(START);
+    robotRef.current = start;
+    setRobot(start);
     setIsRunning(true);
     stepRef.current = 0;
 
@@ -30,6 +33,9 @@ export const useRobot = (wallsRef: React.MutableRefObject<Position[]>) => {
       if (stepRef.current >= flatRef.current.length) {
         clearInterval(intervalRef.current!);
         setIsRunning(false);
+        if (isSame(robotRef.current, finish)) {
+          setMessage("🎉 Достиг финиша!");
+        }
         return;
       }
 
@@ -39,19 +45,13 @@ export const useRobot = (wallsRef: React.MutableRefObject<Position[]>) => {
       const next = move(robotRef.current, cmd, wallsRef.current);
       robotRef.current = next;
       setRobot(next);
-
-      if (isSame(next, FINISH)) {
-        clearInterval(intervalRef.current!);
-        setIsRunning(false);
-        setMessage("🎉 Достиг финиша!");
-      }
     }, STEP_DELAY);
   };
 
   const reset = () => {
     clearInterval(intervalRef.current!);
-    robotRef.current = START;
-    setRobot(START);
+    robotRef.current = start;
+    setRobot(start);
     setIsRunning(false);
     setMessage("");
   };

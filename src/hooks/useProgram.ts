@@ -35,27 +35,24 @@ export const useProgram = () => {
   const loopEnd = () => {
     const stack = editStackRef.current;
     if (stack.length < 2) return;
-
     const rawInput = window.prompt("Сколько раз повторить?", "2");
     if (rawInput === null) return;
     const times = parseInt(rawInput, 10);
     if (isNaN(times) || times < 1) { alert("Введи число ≥ 1"); return; }
-
     const body = stack[stack.length - 1];
     const loop: LoopBlock = { type: "loop", times, body };
     const parentCtx = [...stack[stack.length - 2], loop];
     updateStack([...stack.slice(0, -2), parentCtx]);
   };
 
+  const loadProgram = (program: ProgramItem[]) => {
+    updateStack([program]);
+  };
+
   return {
-    editStack,
-    editStackRef,
-    addCommand,
-    removeAt,
-    undo,
-    clearProgram,
-    loopStart,
-    loopEnd,
+    editStack, editStackRef,
+    addCommand, removeAt, undo, clearProgram,
+    loopStart, loopEnd, loadProgram,
     isInLoop: editStack.length > 1,
   };
 };
