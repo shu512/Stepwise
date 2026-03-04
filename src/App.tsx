@@ -1,8 +1,9 @@
 import React from "react";
-import { Grid } from "./components/Grid";
+import { CodePanel } from "./components/CodePanel";
 import { Controls } from "./components/Controls";
-import { ProgramPanel } from "./components/ProgramPanel";
+import { Grid } from "./components/Grid";
 import { MapsSidebar } from "./components/MapsSidebar";
+import { ProgramPanel } from "./components/ProgramPanel";
 import { useRobot } from "./hooks/useRobot";
 import { useGrid } from "./hooks/useGrid";
 import { useProgram } from "./hooks/useProgram";
@@ -81,6 +82,8 @@ const App: React.FC = () => {
           isRunning={isRunning}
           onRemove={removeAt}
         />
+
+        <CodePanel program={program} />
 
         {message && (
           <div style={{ fontSize: 15, fontWeight: 700, color: "#2a9d8f" }}>{message}</div>
