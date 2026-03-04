@@ -22,6 +22,7 @@ export const useMaps = () => {
   const saveMap = (
     name: string,
     gridSize: number,
+    strictWalls: boolean,
     start: Position,
     finish: Position,
     walls: Position[],
@@ -29,12 +30,7 @@ export const useMaps = () => {
   ) => {
     const newMap: SavedMap = {
       id: Date.now().toString(),
-      name,
-      gridSize,
-      start,
-      finish,
-      walls,
-      program,
+      name, gridSize, strictWalls, start, finish, walls, program,
     };
     const updated = [newMap, ...maps];
     setMaps(updated);

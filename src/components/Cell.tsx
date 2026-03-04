@@ -6,6 +6,7 @@ type Props = {
   onClick: () => void;
   isRunning?: boolean;
   isManual: boolean;
+  isError?: boolean;
 };
 
 const getColor = (type: CellKind) => {
@@ -18,15 +19,20 @@ const getColor = (type: CellKind) => {
   }
 };
 
-export const Cell: React.FC<Props> = ({ type, onClick, isRunning, isManual }) => (
+export const Cell: React.FC<Props> = ({ type, onClick, isRunning, isManual, isError }) => (
   <div
     onClick={onClick}
     style={{
       width: 48, height: 48,
       backgroundColor: getColor(type),
-      cursor: isManual ? "pointer" : isRunning ? "not-allowed" : "pointer",
+      cursor: isManual ? "pointer" : isRunning ? "default" : "pointer",
       boxSizing: "border-box",
       border: "1px solid #c8bfb0",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      fontSize: 20,
+      userSelect: "none",
     }}
-  />
+  >
+    {type === "robot" && isError ? "🩹" : null}
+  </div>
 );

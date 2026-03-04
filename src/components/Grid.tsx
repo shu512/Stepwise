@@ -11,10 +11,14 @@ type Props = {
   walls: Position[];
   isRunning: boolean;
   isManual: boolean;
+  isError: boolean;
   onCellClick: (row: number, col: number) => void;
 };
 
-export const Grid: React.FC<Props> = ({ gridSize, robot, start, finish, walls, isRunning, isManual, onCellClick }) => {
+export const Grid: React.FC<Props> = ({
+  gridSize, robot, start, finish, walls,
+  isRunning, isManual, isError, onCellClick,
+}) => {
   const cells = [];
 
   for (let row = 0; row < gridSize; row++) {
@@ -26,12 +30,15 @@ export const Grid: React.FC<Props> = ({ gridSize, robot, start, finish, walls, i
       else if (isSame(finish, current))             type = "finish";
       else if (walls.some(w => isSame(w, current))) type = "wall";
 
+      const isRobotCell = isSame(robot, current) && isRunning;
+
       cells.push(
         <Cell
           key={`${row}-${col}`}
           type={type}
           isRunning={isRunning}
           isManual={isManual}
+          isError={isRobotCell && isError}
           onClick={() => onCellClick(row, col)}
         />
       );

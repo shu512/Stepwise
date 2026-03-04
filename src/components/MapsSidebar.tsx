@@ -8,7 +8,8 @@ type Props = {
   currentWalls: Position[];
   currentProgram: ProgramItem[];
   gridSize: number;
-  onSave: (name: string, gridSize: number, start: Position, finish: Position, walls: Position[], program?: ProgramItem[]) => void;
+  strictWalls: boolean;
+  onSave: (name: string, gridSize: number, strictWalls: boolean, start: Position, finish: Position, walls: Position[], program?: ProgramItem[]) => void;
   onLoad: (map: SavedMap) => void;
   onDelete: (id: string) => void;
   onImport: (map: SavedMap) => void;
@@ -16,7 +17,7 @@ type Props = {
 };
 
 export const MapsSidebar: React.FC<Props> = ({
-  maps, currentStart, currentFinish, currentWalls, currentProgram, gridSize,
+  maps, currentStart, currentFinish, currentWalls, currentProgram, gridSize, strictWalls,
   onSave, onLoad, onDelete, onImport, onRename,
 }) => {
   const [saveProgram, setSaveProgram] = useState(false);
@@ -27,12 +28,11 @@ export const MapsSidebar: React.FC<Props> = ({
   const handleSave = () => {
     const name = window.prompt("Название карты:", `карта ${maps.length + 1}`);
     if (!name) return;
-    onSave(name, gridSize, currentStart, currentFinish, currentWalls, saveProgram ? currentProgram : undefined);
+    onSave(name, gridSize, strictWalls, currentStart, currentFinish, currentWalls, saveProgram ? currentProgram : undefined);
   };
 
   const handleExport = (map: SavedMap) => {
-    const json = JSON.stringify(map);
-    navigator.clipboard.writeText(json).then(() => {
+    navigator.clipboard.writeText(JSON.stringify(map)).then(() => {
       setCopyFeedback(map.id);
       setTimeout(() => setCopyFeedback(null), 1500);
     });
@@ -59,62 +59,34 @@ export const MapsSidebar: React.FC<Props> = ({
   };
 
   const commitEdit = () => {
-    if (editingId && editingName.trim()) {
-      onRename(editingId, editingName.trim());
-    }
+    if (editingId && editingName.trim()) onRename(editingId, editingName.trim());
     setEditingId(null);
   };
 
   const btn = (extra?: React.CSSProperties): React.CSSProperties => ({
-    padding: "4px 10px",
-    border: "1px solid #b0a090",
-    borderRadius: 3,
-    background: "#f5f0e8",
-    cursor: "pointer",
-    fontFamily: "monospace",
-    fontSize: 12,
-    fontWeight: 600,
-    color: "#2a2a2a",
-    textAlign: "left",
+    padding: "4px 10px", border: "1px solid #b0a090", borderRadius: 3,
+    background: "#f5f0e8", cursor: "pointer", fontFamily: "monospace",
+    fontSize: 12, fontWeight: 600, color: "#2a2a2a", textAlign: "left",
     ...extra,
   });
 
   return (
-    <div style={{
-      width: 180,
-      display: "flex",
-      flexDirection: "column",
-      gap: 8,
-      fontFamily: "monospace",
-      fontSize: 12,
-      color: "#2a2a2a",
-    }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: "#6b5344", letterSpacing: "0.05em" }}>
-        КАРТЫ
-      </div>
+    <div style={{ width: 180, display: "flex", flexDirection: "column", gap: 8, fontFamily: "monospace", fontSize: 12, color: "#2a2a2a" }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: "#6b5344", letterSpacing: "0.05em" }}>КАРТЫ</div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingBottom: 8, borderBottom: "1px solid #d0c8b8" }}>
         <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer", userSelect: "none" }}>
-          <input
-            type="checkbox"
-            checked={saveProgram}
-            onChange={e => setSaveProgram(e.target.checked)}
-            style={{ accentColor: "#6b5344" }}
-          />
+          <input type="checkbox" checked={saveProgram} onChange={e => setSaveProgram(e.target.checked)} style={{ accentColor: "#6b5344" }} />
           сохранить программу
         </label>
         <button onClick={handleSave} style={btn({ background: "#c8e6c9", borderColor: "#4caf50" })}>
           + сохранить карту
         </button>
-        <button onClick={handleImport} style={btn()}>
-          ↓ импортировать
-        </button>
+        <button onClick={handleImport} style={btn()}>↓ импортировать</button>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, overflowY: "auto", overflowX: "hidden", maxHeight: 400 }}>
-        {maps.length === 0 && (
-          <span style={{ color: "#b0a090", fontSize: 11 }}>пусто</span>
-        )}
+        {maps.length === 0 && <span style={{ color: "#b0a090", fontSize: 11 }}>пусто</span>}
         {maps.map(map => (
           <div key={map.id} style={{ display: "flex", alignItems: "center", gap: 4 }}>
             {editingId === map.id ? (
@@ -123,16 +95,10 @@ export const MapsSidebar: React.FC<Props> = ({
                 value={editingName}
                 onChange={e => setEditingName(e.target.value)}
                 onBlur={commitEdit}
-                onKeyDown={e => {
-                  if (e.key === "Enter") commitEdit();
-                  if (e.key === "Escape") setEditingId(null);
-                }}
+                onKeyDown={e => { if (e.key === "Enter") commitEdit(); if (e.key === "Escape") setEditingId(null); }}
                 style={{
-                  flex: 1, padding: "3px 6px",
-                  border: "1px solid #a0522d", borderRadius: 3,
-                  fontFamily: "monospace", fontSize: 12,
-                  background: "#fdfaf4", color: "#2a2a2a",
-                  outline: "none",
+                  flex: 1, padding: "3px 6px", border: "1px solid #a0522d", borderRadius: 3,
+                  fontFamily: "monospace", fontSize: 12, background: "#fdfaf4", color: "#2a2a2a", outline: "none",
                 }}
               />
             ) : (
@@ -142,27 +108,29 @@ export const MapsSidebar: React.FC<Props> = ({
                 style={btn({ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" })}
                 title={map.name}
               >
+                {/* program dot */}
                 <span style={{
-                  display: "inline-block", width: 8, height: 8,
-                  borderRadius: "50%",
-                  backgroundColor: map.program && map.program.length > 0 ? "#4caf50" : "#b0a090",
-                  marginRight: 6, flexShrink: 0,
+                  display: "inline-block", width: 7, height: 7, borderRadius: "50%",
+                  backgroundColor: map.program && map.program.length > 0 ? "#4caf50" : "#d0c8b8",
+                  marginRight: 4, flexShrink: 0, verticalAlign: "middle",
                 }} />
+                {/* strict walls dot */}
+                <span style={{
+                  display: "inline-block", width: 7, height: 7, borderRadius: "50%",
+                  backgroundColor: map.strictWalls ? "#e63946" : "#d0c8b8",
+                  marginRight: 5, flexShrink: 0, verticalAlign: "middle",
+                }} title={map.strictWalls ? "стены — строго" : "стены — мягко"} />
                 {map.name}
               </button>
             )}
-            <button
-              onClick={() => handleExport(map)}
+            <button onClick={() => handleExport(map)}
               style={btn({ padding: "4px 7px", flexShrink: 0, color: copyFeedback === map.id ? "#4caf50" : "#2a2a2a" })}
-              title="Экспортировать"
-            >
+              title="Экспортировать">
               {copyFeedback === map.id ? "✓" : "↑"}
             </button>
-            <button
-              onClick={() => onDelete(map.id)}
+            <button onClick={() => onDelete(map.id)}
               style={btn({ padding: "4px 7px", color: "#c0392b", flexShrink: 0 })}
-              title="Удалить"
-            >
+              title="Удалить">
               ✕
             </button>
           </div>

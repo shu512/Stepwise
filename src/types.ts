@@ -29,6 +29,7 @@ export type SavedMap = {
   id: string;
   name: string;
   gridSize: number;
+  strictWalls: boolean;
   start: Position;
   finish: Position;
   walls: Position[];

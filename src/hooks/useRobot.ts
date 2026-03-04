@@ -10,12 +10,14 @@ export const useRobot = (
   start: Position,
   finish: Position,
   gridSize: number,
+  strictWalls: boolean,
 ) => {
   const [robot, setRobot] = useState<Position>(start);
   const robotRef = useRef<Position>(start);
 
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState("");
+  const [isError, setIsError] = useState(false);
 
   const intervalRef = useRef<number | null>(null);
   const generatorRef = useRef<Generator<string> | null>(null);
@@ -34,6 +36,7 @@ export const useRobot = (
     generatorRef.current = interpret(program, getState);
 
     setMessage("");
+    setIsError(false);
     robotRef.current = start;
     setRobot(start);
     setIsRunning(true);
@@ -51,7 +54,17 @@ export const useRobot = (
         return;
       }
 
-      const next = move(robotRef.current, result.value as any, wallsRef.current, gridSize);
+      const next = move(robotRef.current, result.value as any, wallsRef.current, gridSize, strictWalls);
+
+      if (next === null) {
+        // bump in strictWalls mode
+        clearInterval(intervalRef.current!);
+        setIsRunning(false);
+        setIsError(true);
+        setMessage("💥 Врезался в стену!");
+        return;
+      }
+
       robotRef.current = next;
       setRobot(next);
     }, STEP_DELAY);
@@ -63,6 +76,7 @@ export const useRobot = (
     robotRef.current = start;
     setRobot(start);
     setIsRunning(false);
+    setIsError(false);
     setMessage("");
   };
 
@@ -70,7 +84,8 @@ export const useRobot = (
     robotRef.current = pos;
     setRobot(pos);
     setMessage("");
+    setIsError(false);
   };
 
-  return { robot, isRunning, message, runProgram, reset, teleport };
+  return { robot, isRunning, isError, message, runProgram, reset, teleport };
 };

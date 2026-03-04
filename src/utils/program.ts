@@ -3,16 +3,27 @@ import type { Position, Command, ProgramItem } from "../types";
 export const isSame = (a: Position, b: Position) =>
   a.row === b.row && a.col === b.col;
 
-export const move = (pos: Position, cmd: Command, walls: Position[], gridSize: number): Position => {
+export const move = (
+  pos: Position,
+  cmd: Command,
+  walls: Position[],
+  gridSize: number,
+  strict: boolean = false,
+): Position | null => {
   let { row, col } = pos;
   if (cmd === "UP")    row--;
   if (cmd === "DOWN")  row++;
   if (cmd === "LEFT")  col--;
   if (cmd === "RIGHT") col++;
-  if (row < 0 || col < 0 || row >= gridSize || col >= gridSize) return pos;
-  const next = { row, col };
-  if (walls.some(w => isSame(w, next))) return pos;
-  return next;
+
+  const outOfBounds = row < 0 || col < 0 || row >= gridSize || col >= gridSize;
+  const hitWall = walls.some(w => isSame(w, { row, col }));
+
+  if (outOfBounds || hitWall) {
+    return strict ? null : pos; // null = bump
+  }
+
+  return { row, col };
 };
 
 export const countSteps = (items: ProgramItem[]): number => {

@@ -13,10 +13,17 @@ import { DEFAULT_GRID_SIZE, MIN_GRID_SIZE, MAX_GRID_SIZE } from "./constants";
 import type { DrawMode, SavedMap } from "./types";
 
 const App: React.FC = () => {
+  const [showCode, setShowCode] = usePersistedState("ui-show-code", false);
+  const [showCTranslation, setShowCTranslation] = usePersistedState("ui-show-c-translation", false);
+  const [showMaps, setShowMaps] = usePersistedState("ui-show-maps", false);
+  const [showDraw, setShowDraw] = usePersistedState("ui-show-draw", true);
+  const [showManual, setShowManual] = usePersistedState("ui-show-manual", false);
+  const [strictWalls, setStrictWalls] = usePersistedState("ui-strict-walls", false);
   const [gridSize, setGridSize] = usePersistedState("ui-grid-size", DEFAULT_GRID_SIZE);
 
   const { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid, resetGrid } = useGrid(gridSize);
-  const { robot, isRunning, message, runProgram, reset, teleport } = useRobot(wallsRef, start, finish, gridSize);
+  const { robot, isRunning, isError, message, runProgram, reset, teleport } =
+    useRobot(wallsRef, start, finish, gridSize, strictWalls);
   const {
     program, editStack,
     addCommand, removeAt, clearProgram,
@@ -26,12 +33,6 @@ const App: React.FC = () => {
     isInLoop, isInIf, canElse, isEditing,
   } = useProgram();
   const { maps, saveMap, deleteMap, importMap, renameMap } = useMaps();
-
-  const [showCode, setShowCode] = usePersistedState("ui-show-code", false);
-  const [showCTranslation, setShowCTranslation] = usePersistedState("ui-show-c-translation", false);
-  const [showMaps, setShowMaps] = usePersistedState("ui-show-maps", false);
-  const [showDraw, setShowDraw] = usePersistedState("ui-show-draw", true);
-  const [showManual, setShowManual] = usePersistedState("ui-show-manual", false);
 
   const handleGridSizeChange = (raw: string) => {
     const n = parseInt(raw, 10);
@@ -73,6 +74,7 @@ const App: React.FC = () => {
 
   const handleLoadMap = (map: SavedMap) => {
     setGridSize(map.gridSize);
+    setStrictWalls(map.strictWalls ?? false);
     resetGrid(map.gridSize);
     loadGrid(map.start, map.finish, map.walls);
     if (map.program) loadProgram(map.program);
@@ -127,6 +129,7 @@ const App: React.FC = () => {
           {checkbox("карты", showMaps, setShowMaps)}
           {checkbox("рисование", showDraw, handleShowDraw)}
           {checkbox("ручное управление", showManual, handleShowManual)}
+          {checkbox("стены строго", strictWalls, setStrictWalls)}
           <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b5344", fontFamily: "monospace" }}>
             сетка
             <input
@@ -171,6 +174,7 @@ const App: React.FC = () => {
           walls={walls}
           isRunning={isRunning || showManual}
           isManual={showManual}
+          isError={isError}
           onCellClick={(row, col) => {
             if (showManual) { teleport({ row, col }); return; }
             if (showDraw && !isRunning) { handleCellClick(row, col); return; }
@@ -244,6 +248,7 @@ const App: React.FC = () => {
             currentWalls={walls}
             currentProgram={program}
             gridSize={gridSize}
+            strictWalls={strictWalls}
             onSave={saveMap}
             onLoad={handleLoadMap}
             onDelete={deleteMap}
