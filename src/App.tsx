@@ -25,7 +25,7 @@ const App: React.FC = () => {
     loadProgram,
     isInLoop, isInIf, canElse, isEditing,
   } = useProgram();
-  const { maps, saveMap, deleteMap, importMap } = useMaps();
+  const { maps, saveMap, deleteMap, importMap, renameMap } = useMaps();
 
   const [showCode, setShowCode] = usePersistedState("ui-show-code", false);
   const [showCTranslation, setShowCTranslation] = usePersistedState("ui-show-c-translation", false);
@@ -248,6 +248,7 @@ const App: React.FC = () => {
             onLoad={handleLoadMap}
             onDelete={deleteMap}
             onImport={importMap}
+            onRename={renameMap}
           />
         </div>
       )}

@@ -53,5 +53,11 @@ export const useMaps = () => {
     saveToStorage(updated);
   };
 
-  return { maps, saveMap, deleteMap, importMap };
+  const renameMap = (id: string, name: string) => {
+    const updated = maps.map(m => m.id === id ? { ...m, name } : m);
+    setMaps(updated);
+    saveToStorage(updated);
+  };
+
+  return { maps, saveMap, deleteMap, importMap, renameMap };
 };
