@@ -14,11 +14,12 @@ type Props = {
   onDelete: (id: string) => void;
   onImport: (map: SavedMap) => void;
   onRename: (id: string, name: string) => void;
+  onImportBulk: () => number;
 };
 
 export const MapsSidebar: React.FC<Props> = ({
   maps, currentStart, currentFinish, currentWalls, currentProgram, gridSize, strictWalls,
-  onSave, onLoad, onDelete, onImport, onRename,
+  onSave, onLoad, onDelete, onImport, onRename, onImportBulk,
 }) => {
   const [saveProgram, setSaveProgram] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -83,6 +84,16 @@ export const MapsSidebar: React.FC<Props> = ({
           + сохранить карту
         </button>
         <button onClick={handleImport} style={btn()}>↓ импортировать</button>
+        <button
+          onClick={() => {
+            const count = onImportBulk();
+            if (count === 0) alert("Все карты уже добавлены");
+            else alert(`Добавлено карт: ${count}`);
+          }}
+          style={btn()}
+        >
+          📚 карты для обучения
+        </button>
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 4, overflowY: "auto", overflowX: "hidden", maxHeight: 400 }}>

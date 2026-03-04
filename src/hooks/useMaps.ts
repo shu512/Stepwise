@@ -1,5 +1,6 @@
 import { useState } from "react";
-import type { SavedMap, Position, ProgramItem } from "../types";
+import { LEARNING_MAPS } from "../data/learningMaps";
+import type { Position, ProgramItem, SavedMap } from "../types";
 
 const STORAGE_KEY = "robot-programmer-maps";
 
@@ -55,5 +56,17 @@ export const useMaps = () => {
     saveToStorage(updated);
   };
 
-  return { maps, saveMap, deleteMap, importMap, renameMap };
+  const importBulk = (newMaps: SavedMap[]) => {
+    const existingIds = new Set(maps.map(m => m.id));
+    const toAdd = newMaps.filter(m => !existingIds.has(m.id));
+    if (toAdd.length === 0) return 0;
+    const updated = [...maps, ...toAdd];
+    setMaps(updated);
+    saveToStorage(updated);
+    return toAdd.length;
+  };
+
+  const importLearningMaps = () => importBulk(LEARNING_MAPS);
+
+  return { maps, saveMap, deleteMap, importMap, renameMap, importLearningMaps };
 };

@@ -32,7 +32,7 @@ const App: React.FC = () => {
     loadProgram,
     isInLoop, isInIf, canElse, isEditing,
   } = useProgram();
-  const { maps, saveMap, deleteMap, importMap, renameMap } = useMaps();
+  const { maps, saveMap, deleteMap, importMap, renameMap, importLearningMaps } = useMaps();
 
   const handleGridSizeChange = (raw: string) => {
     const n = parseInt(raw, 10);
@@ -254,6 +254,7 @@ const App: React.FC = () => {
             onDelete={deleteMap}
             onImport={importMap}
             onRename={renameMap}
+            onImportBulk={importLearningMaps}
           />
         </div>
       )}
