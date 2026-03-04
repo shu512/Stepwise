@@ -10,10 +10,11 @@ type Props = {
   finish: Position;
   walls: Position[];
   isRunning: boolean;
+  isManual: boolean;
   onCellClick: (row: number, col: number) => void;
 };
 
-export const Grid: React.FC<Props> = ({ robot, start, finish, walls, isRunning, onCellClick }) => {
+export const Grid: React.FC<Props> = ({ robot, start, finish, walls, isRunning, isManual, onCellClick }) => {
   const cells = [];
 
   for (let row = 0; row < GRID_SIZE; row++) {
@@ -30,6 +31,7 @@ export const Grid: React.FC<Props> = ({ robot, start, finish, walls, isRunning, 
           key={`${row}-${col}`} 
           type={type} 
           isRunning={isRunning}
+          isManual={isManual}
           onClick={() => onCellClick(row, col)}
         />
       );

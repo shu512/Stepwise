@@ -1,18 +1,18 @@
-import React from "react";
-import { CodePanel } from "./components/CodePanel";
-import { Controls } from "./components/Controls";
+import React, { useState } from "react";
 import { Grid } from "./components/Grid";
-import { MapsSidebar } from "./components/MapsSidebar";
+import { Controls } from "./components/Controls";
 import { ProgramPanel } from "./components/ProgramPanel";
+import { MapsSidebar } from "./components/MapsSidebar";
+import { CodePanel } from "./components/CodePanel";
 import { useRobot } from "./hooks/useRobot";
 import { useGrid } from "./hooks/useGrid";
 import { useProgram } from "./hooks/useProgram";
 import { useMaps } from "./hooks/useMaps";
-import type { SavedMap } from "./types";
+import type { DrawMode, SavedMap } from "./types";
 
 const App: React.FC = () => {
   const { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid } = useGrid();
-  const { robot, isRunning, message, runProgram, reset } = useRobot(wallsRef, start, finish);
+  const { robot, isRunning, message, runProgram, reset, teleport } = useRobot(wallsRef, start, finish);
   const {
     program, editStack,
     addCommand, removeAt, clearProgram,
@@ -23,11 +23,77 @@ const App: React.FC = () => {
   } = useProgram();
   const { maps, saveMap, deleteMap } = useMaps();
 
+  const [showCode, setShowCode] = useState(false);
+  const [showCTranslation, setShowCTranslation] = useState(false);
+  const [showMaps, setShowMaps] = useState(false);
+  const [showDraw, setShowDraw] = useState(false);
+  const [showManual, setShowManual] = useState(true);
+
+  const maybeEnableManual = (code: boolean, translation: boolean, draw: boolean) => {
+    if (!code && !translation && !draw) setShowManual(true);
+  };
+
+  const handleShowCode = (v: boolean) => {
+    setShowCode(v);
+    if (v) setShowManual(false);
+    else maybeEnableManual(v, showCTranslation, showDraw);
+  };
+
+  const handleShowCTranslation = (v: boolean) => {
+    setShowCTranslation(v);
+    if (v) setShowManual(false);
+    else maybeEnableManual(showCode, v, showDraw);
+  };
+
+  const handleShowDraw = (v: boolean) => {
+    setShowDraw(v);
+    if (v) setShowManual(false);
+    else maybeEnableManual(showCode, showCTranslation, v);
+  };
+
+  const handleShowManual = (v: boolean) => {
+    setShowManual(v);
+    if (v) {
+      setShowCode(false);
+      setShowCTranslation(false);
+      setShowDraw(false);
+      reset();
+    }
+  };
+
   const handleLoadMap = (map: SavedMap) => {
     loadGrid(map.start, map.finish, map.walls);
     if (map.program) loadProgram(map.program);
     reset();
   };
+
+  const checkbox = (label: string, value: boolean, onChange: (v: boolean) => void) => (
+    <label style={{
+      display: "flex", alignItems: "center", gap: 5,
+      fontSize: 11, color: "#6b5344", cursor: "pointer", userSelect: "none",
+      fontFamily: "monospace",
+    }}>
+      <input
+        type="checkbox"
+        checked={value}
+        onChange={e => onChange(e.target.checked)}
+        style={{ accentColor: "#6b5344" }}
+      />
+      {label}
+    </label>
+  );
+
+  const DRAW_MODES: { mode: DrawMode; label: string; color: string }[] = [
+    { mode: "wall",   label: "стена",  color: "#6b5344" },
+    { mode: "start",  label: "старт",  color: "#457b9d" },
+    { mode: "finish", label: "финиш",  color: "#2a9d8f" },
+  ];
+
+  const btn = (extra?: React.CSSProperties): React.CSSProperties => ({
+    padding: "5px 12px", border: "1px solid #b0a090", borderRadius: 3,
+    background: "#f5f0e8", cursor: "pointer", fontFamily: "monospace",
+    fontSize: 13, fontWeight: 600, color: "#2a2a2a", ...extra,
+  });
 
   return (
     <div style={{
@@ -41,71 +107,131 @@ const App: React.FC = () => {
       color: "#2a2a2a",
     }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, letterSpacing: "0.05em", color: "#6b5344" }}>
-          robot programmer
+
+        {/* Чекбоксы */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+          {checkbox("код", showCode, handleShowCode)}
+          {checkbox("перевод на C", showCTranslation, handleShowCTranslation)}
+          {checkbox("карты", showMaps, setShowMaps)}
+          {checkbox("рисование", showDraw, handleShowDraw)}
+          {checkbox("ручное управление", showManual, handleShowManual)}
         </div>
+
+        {/* Режим рисования */}
+        {showDraw && (
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <span style={{ fontSize: 11, color: "#a09080" }}>рисовать:</span>
+            {DRAW_MODES.map(({ mode, label, color }) => (
+              <button
+                key={mode}
+                onClick={() => setDrawMode(mode)}
+                style={btn({
+                  color,
+                  borderColor: drawMode === mode ? color : "#b0a090",
+                  background: drawMode === mode ? "#fdfaf4" : "#f0ebe0",
+                  fontWeight: drawMode === mode ? 700 : 500,
+                  boxShadow: drawMode === mode ? `inset 0 -2px 0 ${color}` : "none",
+                })}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         <Grid
           robot={robot}
           start={start}
           finish={finish}
           walls={walls}
-          isRunning={isRunning}
-          onCellClick={(row, col) => { if (!isRunning) handleCellClick(row, col); }}
-        />
-
-        <Controls
-          isRunning={isRunning}
-          isEditing={isEditing}
-          isInLoop={isInLoop}
-          isInIf={isInIf}
-          canElse={canElse}
-          drawMode={drawMode}
-          onDrawMode={setDrawMode}
-          onCommand={addCommand}
-          onLoopStart={loopStart}
-          onLoopEnd={loopEnd}
-          onIfStart={ifStart}
-          onIfElse={ifElse}
-          onIfEnd={ifEnd}
-          onClear={clearProgram}
-          onRun={() => {
-            if (isEditing) { alert("Закрой открытый блок!"); return; }
-            runProgram(program);
+          isRunning={isRunning || showManual}
+          isManual={showManual}
+          onCellClick={(row, col) => {
+            if (showManual) {
+              teleport({ row, col });
+              return;
+            }
+            if (showDraw && !isRunning) {
+              handleCellClick(row, col);
+              return;
+            }
           }}
-          onReset={reset}
         />
 
-        <ProgramPanel
-          program={program}
-          editStack={editStack as any}
-          isRunning={isRunning}
-          onRemove={removeAt}
-        />
+        {showCode && (
+          <Controls
+            isRunning={isRunning}
+            isEditing={isEditing}
+            isInLoop={isInLoop}
+            isInIf={isInIf}
+            canElse={canElse}
+            onCommand={addCommand}
+            onLoopStart={loopStart}
+            onLoopEnd={loopEnd}
+            onIfStart={ifStart}
+            onIfElse={ifElse}
+            onIfEnd={ifEnd}
+            hasProgram={program.length > 0}
+            onClear={clearProgram}
+            onRun={() => {
+              if (isEditing) { alert("Закрой открытый блок!"); return; }
+              runProgram(program);
+            }}
+            onReset={reset}
+          />
+        )}
 
-        <CodePanel program={program} />
+        {isEditing && showCode && (
+          <div style={{
+            fontSize: 12, color: "#a0522d",
+            border: "1px dashed #a0522d",
+            padding: "4px 10px", borderRadius: 3,
+          }}>
+            записываю тело блока (глубина {editStack.length - 1}) — закрой блок
+          </div>
+        )}
+
+        {showCode && (
+          <ProgramPanel
+            program={program}
+            editStack={editStack as any}
+            isRunning={isRunning}
+            onRemove={removeAt}
+          />
+        )}
+
+        {showCTranslation && (
+          <CodePanel program={program} />
+        )}
 
         {message && (
           <div style={{ fontSize: 15, fontWeight: 700, color: "#2a9d8f" }}>{message}</div>
         )}
 
         <div style={{ fontSize: 10, color: "#b0a090" }}>
-          клик по ячейке — рисовать · клик по команде — удалить
+          {showManual
+            ? "клик по клетке — переместить робота"
+            : showDraw
+              ? "клик по ячейке — рисовать"
+              : "клик по команде — удалить"
+          }
         </div>
       </div>
 
-      <div style={{ paddingTop: 38 }}>
-        <MapsSidebar
-          maps={maps}
-          currentStart={start}
-          currentFinish={finish}
-          currentWalls={walls}
-          currentProgram={program}
-          onSave={saveMap}
-          onLoad={handleLoadMap}
-          onDelete={deleteMap}
-        />
-      </div>
+      {showMaps && (
+        <div style={{ paddingTop: 8 }}>
+          <MapsSidebar
+            maps={maps}
+            currentStart={start}
+            currentFinish={finish}
+            currentWalls={walls}
+            currentProgram={program}
+            onSave={saveMap}
+            onLoad={handleLoadMap}
+            onDelete={deleteMap}
+          />
+        </div>
+      )}
     </div>
   );
 };

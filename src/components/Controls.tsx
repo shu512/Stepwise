@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import type { Command, DrawMode, Condition } from "../types";
+import type { Command, Condition } from "../types";
 
 type Props = {
   isRunning: boolean;
@@ -7,8 +7,7 @@ type Props = {
   isInLoop: boolean;
   isInIf: boolean;
   canElse: boolean;
-  drawMode: DrawMode;
-  onDrawMode: (mode: DrawMode) => void;
+  hasProgram: boolean;
   onCommand: (cmd: Command) => void;
   onLoopStart: () => void;
   onLoopEnd: () => void;
@@ -21,17 +20,11 @@ type Props = {
 };
 
 const CONDITIONS: { value: Condition; label: string }[] = [
-  { value: "on_finish",   label: "на финише" },
-  { value: "wall_above",  label: "стена сверху" },
-  { value: "wall_below",  label: "стена снизу" },
-  { value: "wall_left",   label: "стена слева" },
-  { value: "wall_right",  label: "стена справа" },
-];
-
-const DRAW_MODES = [
-  { mode: "wall"   as DrawMode, label: "стена",  color: "#6b5344" },
-  { mode: "start"  as DrawMode, label: "старт",  color: "#457b9d" },
-  { mode: "finish" as DrawMode, label: "финиш",  color: "#2a9d8f" },
+  { value: "on_finish",  label: "на финише" },
+  { value: "wall_above", label: "стена сверху" },
+  { value: "wall_below", label: "стена снизу" },
+  { value: "wall_left",  label: "стена слева" },
+  { value: "wall_right", label: "стена справа" },
 ];
 
 const Spinner = () => (
@@ -47,8 +40,7 @@ const Divider = () => (
 );
 
 export const Controls: React.FC<Props> = ({
-  isRunning, isEditing, isInLoop, isInIf, canElse,
-  drawMode, onDrawMode,
+  isRunning, isEditing, isInLoop, isInIf, canElse, hasProgram,
   onCommand, onLoopStart, onLoopEnd,
   onIfStart, onIfElse, onIfEnd,
   onClear, onRun, onReset,
@@ -68,30 +60,17 @@ export const Controls: React.FC<Props> = ({
     <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "center" }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Режим рисования */}
-      <div style={{ display: "flex", gap: 6, alignItems: "center", opacity: isRunning ? 0.4 : 1 }}>
-        <span style={{ fontSize: 11, color: "#a09080", fontFamily: "monospace" }}>рисовать:</span>
-        {DRAW_MODES.map(({ mode, label, color }) => (
-          <button key={mode} disabled={isRunning} onClick={() => onDrawMode(mode)} style={btn({
-            color,
-            borderColor: drawMode === mode ? color : "#b0a090",
-            background: drawMode === mode ? "#fdfaf4" : "#f0ebe0",
-            fontWeight: drawMode === mode ? 700 : 500,
-            boxShadow: drawMode === mode ? `inset 0 -2px 0 ${color}` : "none",
-          })}>
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Команды движения + STOP */}
       <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
+
+        {/* Команды движения */}
         {(["UP", "DOWN", "LEFT", "RIGHT"] as Command[]).map(cmd => (
           <button key={cmd} disabled={isRunning} onClick={() => onCommand(cmd)}
             style={isRunning ? disabled() : btn()}>
             {cmd}
           </button>
         ))}
+
+        {/* STOP */}
         <button disabled={isRunning} onClick={() => onCommand("STOP")}
           style={isRunning ? disabled({ color: "#c0392b" }) : btn({ color: "#c0392b", borderColor: "#e0a0a0" })}>
           STOP
@@ -120,6 +99,7 @@ export const Controls: React.FC<Props> = ({
             padding: "5px 8px", border: "1px solid #b0a090", borderRadius: 3,
             background: "#f5f0e8", fontFamily: "monospace", fontSize: 12,
             color: "#2a2a2a", opacity: isRunning || isInIf ? 0.4 : 1,
+            cursor: isRunning || isInIf ? "not-allowed" : "pointer",
           }}
         >
           {CONDITIONS.map(c => (
@@ -141,18 +121,23 @@ export const Controls: React.FC<Props> = ({
 
         <Divider />
 
-        <button disabled={isRunning} onClick={onClear}
-          style={isRunning ? disabled({ color: "#c0392b" }) : btn({ color: "#c0392b" })}>
+        {/* Clear / Run / Reset */}
+        <button disabled={isRunning || !hasProgram} onClick={onClear}
+          style={isRunning || !hasProgram ? disabled({ color: "#c0392b" }) : btn({ color: "#c0392b" })}>
           CLEAR
         </button>
 
         <Divider />
 
         <button disabled={isRunning} onClick={onRun}
-          style={isRunning ? disabled({ background: "#c8e6c9", borderColor: "#4caf50" }) : btn({ background: "#c8e6c9", borderColor: "#4caf50" })}>
+          style={btn({ background: "#c8e6c9", borderColor: "#4caf50", opacity: isRunning ? 0.4 : 1 })}>
           {isRunning ? <Spinner /> : "RUN"}
         </button>
-        <button onClick={onReset} style={btn()}>RESET</button>
+        <button disabled={!isRunning} onClick={onReset}
+          style={!isRunning ? disabled() : btn()}>
+          RESET
+        </button>
+
       </div>
     </div>
   );

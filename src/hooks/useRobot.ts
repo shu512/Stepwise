@@ -64,5 +64,11 @@ export const useRobot = (
     setMessage("");
   };
 
-  return { robot, isRunning, message, runProgram, reset };
+  const teleport = (pos: Position) => {
+    robotRef.current = pos;
+    setRobot(pos);
+    setMessage("");
+  };
+
+  return { robot, isRunning, message, runProgram, reset, teleport };
 };
