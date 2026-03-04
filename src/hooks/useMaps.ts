@@ -45,5 +45,11 @@ export const useMaps = () => {
     saveToStorage(updated);
   };
 
-  return { maps, saveMap, deleteMap };
+  const importMap = (map: SavedMap) => {
+    const updated = [map, ...maps];
+    setMaps(updated);
+    saveToStorage(updated);
+  };
+
+  return { maps, saveMap, deleteMap, importMap };
 };

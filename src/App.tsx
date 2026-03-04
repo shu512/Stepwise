@@ -1,13 +1,13 @@
 import React, { useState } from "react";
-import { Grid } from "./components/Grid";
-import { Controls } from "./components/Controls";
-import { ProgramPanel } from "./components/ProgramPanel";
-import { MapsSidebar } from "./components/MapsSidebar";
 import { CodePanel } from "./components/CodePanel";
-import { useRobot } from "./hooks/useRobot";
+import { Controls } from "./components/Controls";
+import { Grid } from "./components/Grid";
+import { MapsSidebar } from "./components/MapsSidebar";
+import { ProgramPanel } from "./components/ProgramPanel";
 import { useGrid } from "./hooks/useGrid";
-import { useProgram } from "./hooks/useProgram";
 import { useMaps } from "./hooks/useMaps";
+import { useProgram } from "./hooks/useProgram";
+import { useRobot } from "./hooks/useRobot";
 import type { DrawMode, SavedMap } from "./types";
 
 const App: React.FC = () => {
@@ -21,8 +21,8 @@ const App: React.FC = () => {
     loadProgram,
     isInLoop, isInIf, canElse, isEditing,
   } = useProgram();
-  const { maps, saveMap, deleteMap } = useMaps();
-
+  const { maps, saveMap, deleteMap, importMap } = useMaps();
+  
   const [showCode, setShowCode] = useState(false);
   const [showCTranslation, setShowCTranslation] = useState(false);
   const [showMaps, setShowMaps] = useState(false);
@@ -58,6 +58,8 @@ const App: React.FC = () => {
       setShowCTranslation(false);
       setShowDraw(false);
       reset();
+    } else {
+      setShowDraw(true);
     }
   };
 
@@ -229,6 +231,7 @@ const App: React.FC = () => {
             onSave={saveMap}
             onLoad={handleLoadMap}
             onDelete={deleteMap}
+            onImport={importMap}
           />
         </div>
       )}
