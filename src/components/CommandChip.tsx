@@ -9,13 +9,16 @@ type Props = {
 
 export const CommandChip: React.FC<Props> = ({ cmd, onClick }) => (
   <div
-    onClick={onClick}
+    onClick={e => {
+      e.stopPropagation();
+      onClick?.();
+    }}
     title={onClick ? "Удалить" : undefined}
     style={{
       display: "inline-flex", alignItems: "center", justifyContent: "center",
       padding: "2px 8px",
       borderRadius: 3,
-      backgroundColor: CMD_COLOR[cmd],
+      backgroundColor: CMD_COLOR[cmd] ?? "#ddd",
       color: "#1a1a1a",
       fontWeight: 700,
       fontSize: 12,

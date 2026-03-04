@@ -4,6 +4,7 @@ import type { CellKind } from "../types";
 type Props = {
   type: CellKind;
   onClick: () => void;
+  isRunning?: boolean;
 };
 
 const getColor = (type: CellKind) => {
@@ -16,13 +17,13 @@ const getColor = (type: CellKind) => {
   }
 };
 
-export const Cell: React.FC<Props> = ({ type, onClick }) => (
+export const Cell: React.FC<Props> = ({ type, onClick, isRunning }) => (
   <div
     onClick={onClick}
     style={{
       width: 48, height: 48,
       backgroundColor: getColor(type),
-      cursor: "pointer",
+      cursor: isRunning ? "not-allowed" : "pointer",
       boxSizing: "border-box",
       border: "1px solid #c8bfb0",
     }}

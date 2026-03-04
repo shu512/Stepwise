@@ -26,7 +26,12 @@ export const Grid: React.FC<Props> = ({ robot, start, finish, walls, isRunning, 
       else if (walls.some(w => isSame(w, current))) type = "wall";
 
       cells.push(
-        <Cell key={`${row}-${col}`} type={type} onClick={() => onCellClick(row, col)} />
+        <Cell 
+          key={`${row}-${col}`} 
+          type={type} 
+          isRunning={isRunning}
+          onClick={() => onCellClick(row, col)}
+        />
       );
     }
   }
