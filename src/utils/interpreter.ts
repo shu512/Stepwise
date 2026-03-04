@@ -1,28 +1,28 @@
 import type { ProgramItem, Command, Condition } from "../types";
 import type { Position } from "../types";
 import { isSame } from "./program";
-import { GRID_SIZE } from "../constants";
 
 export type RuntimeState = {
   pos: Position;
   start: Position;
   finish: Position;
   walls: Position[];
+  gridSize: number;
 };
 
-const hasWall = (pos: Position, walls: Position[], dr: number, dc: number): boolean => {
+const hasWall = (pos: Position, walls: Position[], dr: number, dc: number, gridSize: number): boolean => {
   const next = { row: pos.row + dr, col: pos.col + dc };
-  if (next.row < 0 || next.col < 0 || next.row >= GRID_SIZE || next.col >= GRID_SIZE) return true;
+  if (next.row < 0 || next.col < 0 || next.row >= gridSize || next.col >= gridSize) return true;
   return walls.some(w => isSame(w, next));
 };
 
 export const checkCondition = (condition: Condition, state: RuntimeState): boolean => {
   switch (condition) {
-    case "on_finish":    return isSame(state.pos, state.finish);
-    case "wall_above":   return hasWall(state.pos, state.walls, -1,  0);
-    case "wall_below":   return hasWall(state.pos, state.walls,  1,  0);
-    case "wall_left":    return hasWall(state.pos, state.walls,  0, -1);
-    case "wall_right":   return hasWall(state.pos, state.walls,  0,  1);
+    case "on_finish":   return isSame(state.pos, state.finish);
+    case "wall_above":  return hasWall(state.pos, state.walls, -1,  0, state.gridSize);
+    case "wall_below":  return hasWall(state.pos, state.walls,  1,  0, state.gridSize);
+    case "wall_left":   return hasWall(state.pos, state.walls,  0, -1, state.gridSize);
+    case "wall_right":  return hasWall(state.pos, state.walls,  0,  1, state.gridSize);
   }
 };
 

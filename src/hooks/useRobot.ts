@@ -9,6 +9,7 @@ export const useRobot = (
   wallsRef: React.MutableRefObject<Position[]>,
   start: Position,
   finish: Position,
+  gridSize: number,
 ) => {
   const [robot, setRobot] = useState<Position>(start);
   const robotRef = useRef<Position>(start);
@@ -24,6 +25,7 @@ export const useRobot = (
     start,
     finish,
     walls: wallsRef.current,
+    gridSize,
   });
 
   const runProgram = (program: ProgramItem[]) => {
@@ -49,7 +51,7 @@ export const useRobot = (
         return;
       }
 
-      const next = move(robotRef.current, result.value as any, wallsRef.current);
+      const next = move(robotRef.current, result.value as any, wallsRef.current, gridSize);
       robotRef.current = next;
       setRobot(next);
     }, STEP_DELAY);

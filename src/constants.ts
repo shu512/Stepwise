@@ -1,7 +1,9 @@
 import type { Position } from "./types";
 
-export const GRID_SIZE = 8;
 export const STEP_DELAY = 350;
+export const DEFAULT_GRID_SIZE = 8;
+export const MIN_GRID_SIZE = 3;
+export const MAX_GRID_SIZE = 20;
 
 export const DEFAULT_START: Position = { row: 0, col: 0 };
 export const DEFAULT_FINISH: Position = { row: 7, col: 7 };

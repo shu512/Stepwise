@@ -1,16 +1,15 @@
 import type { Position, Command, ProgramItem } from "../types";
-import { GRID_SIZE } from "../constants";
 
 export const isSame = (a: Position, b: Position) =>
   a.row === b.row && a.col === b.col;
 
-export const move = (pos: Position, cmd: Command, walls: Position[]): Position => {
+export const move = (pos: Position, cmd: Command, walls: Position[], gridSize: number): Position => {
   let { row, col } = pos;
   if (cmd === "UP")    row--;
   if (cmd === "DOWN")  row++;
   if (cmd === "LEFT")  col--;
   if (cmd === "RIGHT") col++;
-  if (row < 0 || col < 0 || row >= GRID_SIZE || col >= GRID_SIZE) return pos;
+  if (row < 0 || col < 0 || row >= gridSize || col >= gridSize) return pos;
   const next = { row, col };
   if (walls.some(w => isSame(w, next))) return pos;
   return next;

@@ -1,14 +1,23 @@
 import { useState, useRef } from "react";
 import type { Position, DrawMode } from "../types";
-import { DEFAULT_START, DEFAULT_FINISH } from "../constants";
+import { DEFAULT_START } from "../constants";
 import { isSame } from "../utils/program";
 
-export const useGrid = () => {
+export const useGrid = (gridSize: number) => {
+  const defaultFinish = (): Position => ({ row: gridSize - 1, col: gridSize - 1 });
+
   const [start, setStart] = useState<Position>(DEFAULT_START);
-  const [finish, setFinish] = useState<Position>(DEFAULT_FINISH);
+  const [finish, setFinish] = useState<Position>(defaultFinish());
   const [walls, setWalls] = useState<Position[]>([]);
   const wallsRef = useRef<Position[]>([]);
   const [drawMode, setDrawMode] = useState<DrawMode>("wall");
+
+  const resetGrid = (newSize: number) => {
+    setStart(DEFAULT_START);
+    setFinish({ row: newSize - 1, col: newSize - 1 });
+    setWalls([]);
+    wallsRef.current = [];
+  };
 
   const handleCellClick = (row: number, col: number) => {
     const pos = { row, col };
@@ -52,5 +61,5 @@ export const useGrid = () => {
     wallsRef.current = newWalls;
   };
 
-  return { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid };
+  return { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid, resetGrid };
 };

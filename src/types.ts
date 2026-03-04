@@ -28,6 +28,7 @@ export type ProgramItem = Command | LoopBlock | IfBlock;
 export type SavedMap = {
   id: string;
   name: string;
+  gridSize: number;
   start: Position;
   finish: Position;
   walls: Position[];

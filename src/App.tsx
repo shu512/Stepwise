@@ -1,19 +1,22 @@
-import React, { useState } from "react";
-import { CodePanel } from "./components/CodePanel";
-import { Controls } from "./components/Controls";
+import React from "react";
 import { Grid } from "./components/Grid";
-import { MapsSidebar } from "./components/MapsSidebar";
+import { Controls } from "./components/Controls";
 import { ProgramPanel } from "./components/ProgramPanel";
-import { useGrid } from "./hooks/useGrid";
-import { useMaps } from "./hooks/useMaps";
-import { useProgram } from "./hooks/useProgram";
+import { MapsSidebar } from "./components/MapsSidebar";
+import { CodePanel } from "./components/CodePanel";
 import { useRobot } from "./hooks/useRobot";
-import type { DrawMode, SavedMap } from "./types";
+import { useGrid } from "./hooks/useGrid";
+import { useProgram } from "./hooks/useProgram";
+import { useMaps } from "./hooks/useMaps";
 import { usePersistedState } from "./hooks/usePersistedState";
+import { DEFAULT_GRID_SIZE, MIN_GRID_SIZE, MAX_GRID_SIZE } from "./constants";
+import type { DrawMode, SavedMap } from "./types";
 
 const App: React.FC = () => {
-  const { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid } = useGrid();
-  const { robot, isRunning, message, runProgram, reset, teleport } = useRobot(wallsRef, start, finish);
+  const [gridSize, setGridSize] = usePersistedState("ui-grid-size", DEFAULT_GRID_SIZE);
+
+  const { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid, resetGrid } = useGrid(gridSize);
+  const { robot, isRunning, message, runProgram, reset, teleport } = useRobot(wallsRef, start, finish, gridSize);
   const {
     program, editStack,
     addCommand, removeAt, clearProgram,
@@ -23,33 +26,37 @@ const App: React.FC = () => {
     isInLoop, isInIf, canElse, isEditing,
   } = useProgram();
   const { maps, saveMap, deleteMap, importMap } = useMaps();
-  
+
   const [showCode, setShowCode] = usePersistedState("ui-show-code", false);
   const [showCTranslation, setShowCTranslation] = usePersistedState("ui-show-c-translation", false);
   const [showMaps, setShowMaps] = usePersistedState("ui-show-maps", false);
   const [showDraw, setShowDraw] = usePersistedState("ui-show-draw", true);
   const [showManual, setShowManual] = usePersistedState("ui-show-manual", false);
 
-  const maybeEnableManual = (code: boolean, translation: boolean, draw: boolean) => {
-    if (!code && !translation && !draw) setShowManual(true);
+  const handleGridSizeChange = (raw: string) => {
+    const n = parseInt(raw, 10);
+    if (isNaN(n) || n < MIN_GRID_SIZE || n > MAX_GRID_SIZE) return;
+    setGridSize(n);
+    resetGrid(n);
+    reset();
   };
 
   const handleShowCode = (v: boolean) => {
     setShowCode(v);
     if (v) setShowManual(false);
-    else maybeEnableManual(v, showCTranslation, showDraw);
+    else if (!v && !showCTranslation) setShowManual(true);
   };
 
   const handleShowCTranslation = (v: boolean) => {
     setShowCTranslation(v);
     if (v) setShowManual(false);
-    else maybeEnableManual(showCode, v, showDraw);
+    else if (!showCode && !v) setShowManual(true);
   };
 
   const handleShowDraw = (v: boolean) => {
     setShowDraw(v);
     if (v) setShowManual(false);
-    else maybeEnableManual(showCode, showCTranslation, v);
+    else if (!showCode && !showCTranslation && !v) setShowManual(true);
   };
 
   const handleShowManual = (v: boolean) => {
@@ -65,6 +72,8 @@ const App: React.FC = () => {
   };
 
   const handleLoadMap = (map: SavedMap) => {
+    setGridSize(map.gridSize);
+    resetGrid(map.gridSize);
     loadGrid(map.start, map.finish, map.walls);
     if (map.program) loadProgram(map.program);
     reset();
@@ -111,13 +120,29 @@ const App: React.FC = () => {
     }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
 
-        {/* Чекбоксы */}
-        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center" }}>
+        {/* Чекбоксы + размер сетки */}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
           {checkbox("код", showCode, handleShowCode)}
           {checkbox("перевод на C", showCTranslation, handleShowCTranslation)}
           {checkbox("карты", showMaps, setShowMaps)}
           {checkbox("рисование", showDraw, handleShowDraw)}
           {checkbox("ручное управление", showManual, handleShowManual)}
+          <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b5344", fontFamily: "monospace" }}>
+            сетка
+            <input
+              type="number"
+              value={gridSize}
+              min={MIN_GRID_SIZE}
+              max={MAX_GRID_SIZE}
+              onChange={e => handleGridSizeChange(e.target.value)}
+              style={{
+                width: 40, padding: "2px 4px",
+                border: "1px solid #b0a090", borderRadius: 3,
+                background: "#fdfaf4", fontFamily: "monospace",
+                fontSize: 11, color: "#2a2a2a", textAlign: "center",
+              }}
+            />
+          </label>
         </div>
 
         {/* Режим рисования */}
@@ -125,17 +150,13 @@ const App: React.FC = () => {
           <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
             <span style={{ fontSize: 11, color: "#a09080" }}>рисовать:</span>
             {DRAW_MODES.map(({ mode, label, color }) => (
-              <button
-                key={mode}
-                onClick={() => setDrawMode(mode)}
-                style={btn({
-                  color,
-                  borderColor: drawMode === mode ? color : "#b0a090",
-                  background: drawMode === mode ? "#fdfaf4" : "#f0ebe0",
-                  fontWeight: drawMode === mode ? 700 : 500,
-                  boxShadow: drawMode === mode ? `inset 0 -2px 0 ${color}` : "none",
-                })}
-              >
+              <button key={mode} onClick={() => setDrawMode(mode)} style={btn({
+                color,
+                borderColor: drawMode === mode ? color : "#b0a090",
+                background: drawMode === mode ? "#fdfaf4" : "#f0ebe0",
+                fontWeight: drawMode === mode ? 700 : 500,
+                boxShadow: drawMode === mode ? `inset 0 -2px 0 ${color}` : "none",
+              })}>
                 {label}
               </button>
             ))}
@@ -143,6 +164,7 @@ const App: React.FC = () => {
         )}
 
         <Grid
+          gridSize={gridSize}
           robot={robot}
           start={start}
           finish={finish}
@@ -150,14 +172,8 @@ const App: React.FC = () => {
           isRunning={isRunning || showManual}
           isManual={showManual}
           onCellClick={(row, col) => {
-            if (showManual) {
-              teleport({ row, col });
-              return;
-            }
-            if (showDraw && !isRunning) {
-              handleCellClick(row, col);
-              return;
-            }
+            if (showManual) { teleport({ row, col }); return; }
+            if (showDraw && !isRunning) { handleCellClick(row, col); return; }
           }}
         />
 
@@ -168,13 +184,13 @@ const App: React.FC = () => {
             isInLoop={isInLoop}
             isInIf={isInIf}
             canElse={canElse}
+            hasProgram={program.length > 0}
             onCommand={addCommand}
             onLoopStart={loopStart}
             onLoopEnd={loopEnd}
             onIfStart={ifStart}
             onIfElse={ifElse}
             onIfEnd={ifEnd}
-            hasProgram={program.length > 0}
             onClear={clearProgram}
             onRun={() => {
               if (isEditing) { alert("Закрой открытый блок!"); return; }
@@ -203,9 +219,7 @@ const App: React.FC = () => {
           />
         )}
 
-        {showCTranslation && (
-          <CodePanel program={program} />
-        )}
+        {showCTranslation && <CodePanel program={program} />}
 
         {message && (
           <div style={{ fontSize: 15, fontWeight: 700, color: "#2a9d8f" }}>{message}</div>
@@ -229,6 +243,7 @@ const App: React.FC = () => {
             currentFinish={finish}
             currentWalls={walls}
             currentProgram={program}
+            gridSize={gridSize}
             onSave={saveMap}
             onLoad={handleLoadMap}
             onDelete={deleteMap}

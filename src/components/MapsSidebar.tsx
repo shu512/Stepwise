@@ -7,14 +7,15 @@ type Props = {
   currentFinish: Position;
   currentWalls: Position[];
   currentProgram: ProgramItem[];
-  onSave: (name: string, start: Position, finish: Position, walls: Position[], program?: ProgramItem[]) => void;
+  gridSize: number;
+  onSave: (name: string, gridSize: number, start: Position, finish: Position, walls: Position[], program?: ProgramItem[]) => void;
   onLoad: (map: SavedMap) => void;
   onDelete: (id: string) => void;
   onImport: (map: SavedMap) => void;
 };
 
 export const MapsSidebar: React.FC<Props> = ({
-  maps, currentStart, currentFinish, currentWalls, currentProgram,
+  maps, currentStart, currentFinish, currentWalls, currentProgram, gridSize,
   onSave, onLoad, onDelete, onImport,
 }) => {
   const [saveProgram, setSaveProgram] = useState(false);
@@ -23,7 +24,7 @@ export const MapsSidebar: React.FC<Props> = ({
   const handleSave = () => {
     const name = window.prompt("Название карты:", `карта ${maps.length + 1}`);
     if (!name) return;
-    onSave(name, currentStart, currentFinish, currentWalls, saveProgram ? currentProgram : undefined);
+    onSave(name, gridSize, currentStart, currentFinish, currentWalls, saveProgram ? currentProgram : undefined);
   };
 
   const handleExport = (map: SavedMap) => {
@@ -39,7 +40,7 @@ export const MapsSidebar: React.FC<Props> = ({
     if (!raw) return;
     try {
       const map = JSON.parse(raw) as SavedMap;
-      if (!map.id || !map.name || !map.start || !map.finish || !map.walls) {
+      if (!map.id || !map.name || !map.gridSize || !map.start || !map.finish || !map.walls) {
         alert("Некорректные данные");
         return;
       }
