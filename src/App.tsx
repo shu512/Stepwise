@@ -9,6 +9,7 @@ import { useMaps } from "./hooks/useMaps";
 import { useProgram } from "./hooks/useProgram";
 import { useRobot } from "./hooks/useRobot";
 import type { DrawMode, SavedMap } from "./types";
+import { usePersistedState } from "./hooks/usePersistedState";
 
 const App: React.FC = () => {
   const { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid } = useGrid();
@@ -23,11 +24,11 @@ const App: React.FC = () => {
   } = useProgram();
   const { maps, saveMap, deleteMap, importMap } = useMaps();
   
-  const [showCode, setShowCode] = useState(false);
-  const [showCTranslation, setShowCTranslation] = useState(false);
-  const [showMaps, setShowMaps] = useState(false);
-  const [showDraw, setShowDraw] = useState(false);
-  const [showManual, setShowManual] = useState(true);
+  const [showCode, setShowCode] = usePersistedState("ui-show-code", false);
+  const [showCTranslation, setShowCTranslation] = usePersistedState("ui-show-c-translation", false);
+  const [showMaps, setShowMaps] = usePersistedState("ui-show-maps", false);
+  const [showDraw, setShowDraw] = usePersistedState("ui-show-draw", true);
+  const [showManual, setShowManual] = usePersistedState("ui-show-manual", false);
 
   const maybeEnableManual = (code: boolean, translation: boolean, draw: boolean) => {
     if (!code && !translation && !draw) setShowManual(true);
