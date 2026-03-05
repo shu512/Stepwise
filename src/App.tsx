@@ -184,7 +184,6 @@ const App: React.FC = () => {
         {showCode && (
           <Controls
             isRunning={isRunning}
-            isEditing={isEditing}
             isInLoop={isInLoop}
             isInIf={isInIf}
             canElse={canElse}

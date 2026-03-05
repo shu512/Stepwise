@@ -3,7 +3,6 @@ import type { Command, Condition } from "../types";
 
 type Props = {
   isRunning: boolean;
-  isEditing: boolean;
   isInLoop: boolean;
   isInIf: boolean;
   canElse: boolean;
@@ -40,7 +39,7 @@ const Divider = () => (
 );
 
 export const Controls: React.FC<Props> = ({
-  isRunning, isEditing, isInLoop, isInIf, canElse, hasProgram,
+  isRunning, isInLoop, isInIf, canElse, hasProgram,
   onCommand, onLoopStart, onLoopEnd,
   onIfStart, onIfElse, onIfEnd,
   onClear, onRun, onReset,
