@@ -129,7 +129,7 @@ const App: React.FC = () => {
           {checkbox("карты", showMaps, setShowMaps)}
           {checkbox("рисование", showDraw, handleShowDraw)}
           {checkbox("ручное управление", showManual, handleShowManual)}
-          {checkbox("стены строго", strictWalls, setStrictWalls)}
+          {checkbox("столкновения со стеной", strictWalls, setStrictWalls)}
           <label style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, color: "#6b5344", fontFamily: "monospace" }}>
             сетка
             <input

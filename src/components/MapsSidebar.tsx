@@ -124,13 +124,13 @@ export const MapsSidebar: React.FC<Props> = ({
                   display: "inline-block", width: 7, height: 7, borderRadius: "50%",
                   backgroundColor: map.program && map.program.length > 0 ? "#4caf50" : "#d0c8b8",
                   marginRight: 4, flexShrink: 0, verticalAlign: "middle",
-                }} />
+                }} title={map.program?.length ? "с программой" : "без программы"} />
                 {/* strict walls dot */}
                 <span style={{
                   display: "inline-block", width: 7, height: 7, borderRadius: "50%",
                   backgroundColor: map.strictWalls ? "#e63946" : "#d0c8b8",
                   marginRight: 5, flexShrink: 0, verticalAlign: "middle",
-                }} title={map.strictWalls ? "стены — строго" : "стены — мягко"} />
+                }} title={map.strictWalls ? "столкновения включены" : "без столкновений"} />
                 {map.name}
               </button>
             )}
