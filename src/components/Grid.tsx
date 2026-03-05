@@ -1,7 +1,7 @@
-import React from "react";
-import { Cell } from "./Cell";
-import type { Position, CellKind } from "../types";
-import { isSame } from "../utils/program";
+import React from 'react';
+import { Cell } from './Cell';
+import type { Position, CellKind } from '../types';
+import { isSame } from '../utils/program';
 
 type Props = {
   gridSize: number;
@@ -16,19 +16,26 @@ type Props = {
 };
 
 export const Grid: React.FC<Props> = ({
-  gridSize, robot, start, finish, walls,
-  isRunning, isManual, isError, onCellClick,
+  gridSize,
+  robot,
+  start,
+  finish,
+  walls,
+  isRunning,
+  isManual,
+  isError,
+  onCellClick,
 }) => {
   const cells = [];
 
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
       const current = { row, col };
-      let type: CellKind = "empty";
-      if (isSame(robot, current) && isRunning)      type = "robot";
-      else if (isSame(start, current))              type = "start";
-      else if (isSame(finish, current))             type = "finish";
-      else if (walls.some(w => isSame(w, current))) type = "wall";
+      let type: CellKind = 'empty';
+      if (isSame(robot, current) && isRunning) type = 'robot';
+      else if (isSame(start, current)) type = 'start';
+      else if (isSame(finish, current)) type = 'finish';
+      else if (walls.some(w => isSame(w, current))) type = 'wall';
 
       const isRobotCell = isSame(robot, current) && isRunning;
 
@@ -40,17 +47,19 @@ export const Grid: React.FC<Props> = ({
           isManual={isManual}
           isError={isRobotCell && isError}
           onClick={() => onCellClick(row, col)}
-        />
+        />,
       );
     }
   }
 
   return (
-    <div style={{
-      display: "grid",
-      gridTemplateColumns: `repeat(${gridSize}, 48px)`,
-      border: "1px solid #b0a090",
-    }}>
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: `repeat(${gridSize}, 48px)`,
+        border: '1px solid #b0a090',
+      }}
+    >
       {cells}
     </div>
   );

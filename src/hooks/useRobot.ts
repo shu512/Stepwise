@@ -1,9 +1,9 @@
-import { useState, useRef } from "react";
-import type { Position, ProgramItem } from "../types";
-import { STEP_DELAY } from "../constants";
-import { move, isSame } from "../utils/program";
-import { interpret } from "../utils/interpreter";
-import type { RuntimeState } from "../utils/interpreter";
+import { useState, useRef } from 'react';
+import type { Position, ProgramItem } from '../types';
+import { STEP_DELAY } from '../constants';
+import { move, isSame } from '../utils/program';
+import { interpret } from '../utils/interpreter';
+import type { RuntimeState } from '../utils/interpreter';
 
 export const useRobot = (
   wallsRef: React.MutableRefObject<Position[]>,
@@ -16,7 +16,7 @@ export const useRobot = (
   const robotRef = useRef<Position>(start);
 
   const [isRunning, setIsRunning] = useState(false);
-  const [message, setMessage] = useState("");
+  const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
   const intervalRef = useRef<number | null>(null);
@@ -35,7 +35,7 @@ export const useRobot = (
 
     generatorRef.current = interpret(program, getState);
 
-    setMessage("");
+    setMessage('');
     setIsError(false);
     robotRef.current = start;
     setRobot(start);
@@ -49,19 +49,25 @@ export const useRobot = (
         clearInterval(intervalRef.current!);
         setIsRunning(false);
         if (isSame(robotRef.current, finish)) {
-          setMessage("🎉 Достиг финиша!");
+          setMessage('🎉 Достиг финиша!');
         }
         return;
       }
 
-      const next = move(robotRef.current, result.value as any, wallsRef.current, gridSize, strictWalls);
+      const next = move(
+        robotRef.current,
+        result.value as any,
+        wallsRef.current,
+        gridSize,
+        strictWalls,
+      );
 
       if (next === null) {
         // bump in strictWalls mode
         clearInterval(intervalRef.current!);
         setIsRunning(false);
         setIsError(true);
-        setMessage("💥 Врезался в стену!");
+        setMessage('💥 Врезался в стену!');
         return;
       }
 
@@ -77,13 +83,13 @@ export const useRobot = (
     setRobot(start);
     setIsRunning(false);
     setIsError(false);
-    setMessage("");
+    setMessage('');
   };
 
   const teleport = (pos: Position) => {
     robotRef.current = pos;
     setRobot(pos);
-    setMessage("");
+    setMessage('');
     setIsError(false);
   };
 

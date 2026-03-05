@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState } from 'react';
 
 export const usePersistedState = <T>(key: string, defaultValue: T) => {
   const [state, setState] = useState<T>(() => {

@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
-import type { Position, DrawMode } from "../types";
-import { DEFAULT_START } from "../constants";
-import { isSame } from "../utils/program";
+import { useState, useRef } from 'react';
+import type { Position, DrawMode } from '../types';
+import { DEFAULT_START } from '../constants';
+import { isSame } from '../utils/program';
 
 export const useGrid = (gridSize: number) => {
   const defaultFinish = (): Position => ({ row: gridSize - 1, col: gridSize - 1 });
@@ -10,7 +10,7 @@ export const useGrid = (gridSize: number) => {
   const [finish, setFinish] = useState<Position>(defaultFinish());
   const [walls, setWalls] = useState<Position[]>([]);
   const wallsRef = useRef<Position[]>([]);
-  const [drawMode, setDrawMode] = useState<DrawMode>("wall");
+  const [drawMode, setDrawMode] = useState<DrawMode>('wall');
 
   const resetGrid = (newSize: number) => {
     setStart(DEFAULT_START);
@@ -22,7 +22,7 @@ export const useGrid = (gridSize: number) => {
   const handleCellClick = (row: number, col: number) => {
     const pos = { row, col };
 
-    if (drawMode === "start") {
+    if (drawMode === 'start') {
       if (isSame(pos, finish)) return;
       setWalls(prev => {
         const next = prev.filter(w => !isSame(w, pos));
@@ -33,7 +33,7 @@ export const useGrid = (gridSize: number) => {
       return;
     }
 
-    if (drawMode === "finish") {
+    if (drawMode === 'finish') {
       if (isSame(pos, start)) return;
       setWalls(prev => {
         const next = prev.filter(w => !isSame(w, pos));
@@ -61,5 +61,15 @@ export const useGrid = (gridSize: number) => {
     wallsRef.current = newWalls;
   };
 
-  return { start, finish, walls, wallsRef, drawMode, setDrawMode, handleCellClick, loadGrid, resetGrid };
+  return {
+    start,
+    finish,
+    walls,
+    wallsRef,
+    drawMode,
+    setDrawMode,
+    handleCellClick,
+    loadGrid,
+    resetGrid,
+  };
 };

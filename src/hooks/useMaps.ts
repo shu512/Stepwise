@@ -1,8 +1,8 @@
-import { useState } from "react";
-import { LEARNING_MAPS } from "../data/learningMaps";
-import type { Position, ProgramItem, SavedMap } from "../types";
+import { useState } from 'react';
+import { LEARNING_MAPS } from '../data/learningMaps';
+import type { Position, ProgramItem, SavedMap } from '../types';
 
-const STORAGE_KEY = "robot-programmer-maps";
+const STORAGE_KEY = 'robot-programmer-maps';
 
 const loadFromStorage = (): SavedMap[] => {
   try {
@@ -31,7 +31,13 @@ export const useMaps = () => {
   ) => {
     const newMap: SavedMap = {
       id: Date.now().toString(),
-      name, gridSize, strictWalls, start, finish, walls, program,
+      name,
+      gridSize,
+      strictWalls,
+      start,
+      finish,
+      walls,
+      program,
     };
     const updated = [newMap, ...maps];
     setMaps(updated);
@@ -51,7 +57,7 @@ export const useMaps = () => {
   };
 
   const renameMap = (id: string, name: string) => {
-    const updated = maps.map(m => m.id === id ? { ...m, name } : m);
+    const updated = maps.map(m => (m.id === id ? { ...m, name } : m));
     setMaps(updated);
     saveToStorage(updated);
   };
