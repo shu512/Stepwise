@@ -14,6 +14,7 @@ type Props = {
   editStack: StackEntry[];
   isRunning: boolean;
   onRemove: (path: number[]) => void;
+  onUpdateTimes: (path: number[], times: number) => void;
 };
 
 const IF_FRAME_LABELS: Record<string, string> = {
@@ -21,7 +22,13 @@ const IF_FRAME_LABELS: Record<string, string> = {
   if_else: 'else',
 };
 
-export const ProgramPanel: React.FC<Props> = ({ program, editStack, isRunning, onRemove }) => (
+export const ProgramPanel: React.FC<Props> = ({
+  program,
+  editStack,
+  isRunning,
+  onRemove,
+  onUpdateTimes,
+}) => (
   <div
     style={{
       width: '100%',
@@ -39,7 +46,12 @@ export const ProgramPanel: React.FC<Props> = ({ program, editStack, isRunning, o
     </div>
 
     {program.length > 0 ? (
-      <ProgramDisplay items={program} depth={0} onRemove={isRunning ? undefined : onRemove} />
+      <ProgramDisplay
+        items={program}
+        depth={0}
+        onRemove={isRunning ? undefined : onRemove}
+        onUpdateTimes={isRunning ? undefined : onUpdateTimes}
+      />
     ) : (
       <span style={{ color: '#c0b0a0', fontSize: 12 }}>пусто</span>
     )}

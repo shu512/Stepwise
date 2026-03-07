@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import type { Command, ProgramItem, LoopBlock, IfBlock, Condition } from '../types';
-import { removeAtPath } from '../utils/program';
+import { removeAtPath, updateLoopTimes } from '../utils/program';
 
 type StackFrame =
   | { kind: 'loop' }
@@ -67,6 +67,11 @@ export const useProgram = () => {
     updateStack([...stack.slice(0, -2), { ...parent, items: [...parent.items, loop] }]);
   };
 
+  const updateTimes = (path: number[], times: number) => {
+    const newItems = updateLoopTimes(editStackRef.current[0].items, path, times);
+    updateStack([{ ...editStackRef.current[0], items: newItems }]);
+  };
+
   // ── If ────────────────────────────────────────────────────────────────────
 
   const ifStart = (condition: Condition) => {
@@ -126,6 +131,7 @@ export const useProgram = () => {
     clearProgram,
     loopStart,
     loopEnd,
+    updateTimes,
     ifStart,
     ifElse,
     ifEnd,

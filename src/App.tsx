@@ -48,6 +48,7 @@ const App: React.FC = () => {
     clearProgram,
     loopStart,
     loopEnd,
+    updateTimes,
     ifStart,
     ifElse,
     ifEnd,
@@ -299,6 +300,7 @@ const App: React.FC = () => {
             editStack={editStack as any}
             isRunning={isRunning}
             onRemove={removeAt}
+            onUpdateTimes={updateTimes}
           />
         )}
 

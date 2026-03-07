@@ -58,3 +58,26 @@ export const removeAtPath = (items: ProgramItem[], path: number[]): ProgramItem[
     return item;
   });
 };
+
+export const updateLoopTimes = (
+  items: ProgramItem[],
+  path: number[],
+  times: number,
+): ProgramItem[] => {
+  const [head, ...tail] = path;
+  return items.map((item, i) => {
+    if (i !== head) return item;
+    if (typeof item === 'string') return item;
+    if (tail.length === 0 && item.type === 'loop') {
+      return { ...item, times };
+    }
+    if (item.type === 'loop') {
+      return { ...item, body: updateLoopTimes(item.body, tail, times) };
+    }
+    if (item.type === 'if') {
+      if (tail[0] === 0) return { ...item, then: updateLoopTimes(item.then, tail.slice(1), times) };
+      if (tail[0] === 1) return { ...item, else: updateLoopTimes(item.else, tail.slice(1), times) };
+    }
+    return item;
+  });
+};

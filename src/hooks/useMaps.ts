@@ -66,7 +66,7 @@ export const useMaps = () => {
     const existingIds = new Set(maps.map(m => m.id));
     const toAdd = newMaps.filter(m => !existingIds.has(m.id));
     if (toAdd.length === 0) return 0;
-    const updated = [...maps, ...toAdd];
+    const updated = [...toAdd, ...maps];
     setMaps(updated);
     saveToStorage(updated);
     return toAdd.length;
