@@ -1,9 +1,10 @@
-import { useState, useRef } from 'react';
-import type { Position, ProgramItem } from '../types';
+import { useRef, useState } from 'react';
 import { STEP_DELAY } from '../constants';
-import { move, isSame } from '../utils/program';
-import { interpret } from '../utils/interpreter';
+import type { Position, ProgramItem } from '../types';
 import type { RuntimeState } from '../utils/interpreter';
+import { interpret } from '../utils/interpreter';
+import { isSame, move } from '../utils/program';
+import confetti from 'canvas-confetti';
 
 export const useRobot = (
   wallsRef: React.MutableRefObject<Position[]>,
@@ -50,6 +51,12 @@ export const useRobot = (
         setIsRunning(false);
         if (isSame(robotRef.current, finish)) {
           setMessage('🎉 Достиг финиша!');
+          confetti({
+            particleCount: 120,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#2a9d8f', '#457b9d', '#e63946', '#f9c74f', '#90be6d'],
+          });
         }
         return;
       }
