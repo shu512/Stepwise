@@ -11,6 +11,7 @@ import { useMaps } from './hooks/useMaps';
 import { usePersistedState } from './hooks/usePersistedState';
 import { DEFAULT_GRID_SIZE, MIN_GRID_SIZE, MAX_GRID_SIZE } from './constants';
 import type { DrawMode, SavedMap } from './types';
+import { GitHubIcon } from './components/GitHubIcon';
 
 const App: React.FC = () => {
   const [showCode, setShowCode] = usePersistedState('ui-show-code', false);
@@ -307,12 +308,41 @@ const App: React.FC = () => {
           <div style={{ fontSize: 15, fontWeight: 700, color: '#2a9d8f' }}>{message}</div>
         )}
 
-        <div style={{ fontSize: 10, color: '#b0a090' }}>
-          {showManual
-            ? 'клик по клетке — переместить робота'
-            : showDraw
-              ? 'клик по ячейке — рисовать'
-              : 'клик по команде — удалить'}
+        {/* Подсказка + github внизу */}
+        <div
+          style={{
+            fontSize: 10,
+            color: '#b0a090',
+            display: 'flex',
+            gap: 12,
+            alignItems: 'center',
+          }}
+        >
+          <span>
+            {showManual
+              ? 'клик по клетке — переместить робота'
+              : showDraw
+                ? 'клик по ячейке — рисовать'
+                : 'клик по команде — удалить'}
+          </span>
+          <div
+            style={{
+              fontSize: 10,
+              color: '#b0a090',
+              display: 'flex',
+              gap: 12,
+              alignItems: 'center',
+            }}
+          >
+            <span>
+              {showManual
+                ? 'клик по клетке — переместить робота'
+                : showDraw
+                  ? 'клик по ячейке — рисовать'
+                  : 'клик по команде — удалить'}
+            </span>
+            <GitHubIcon />
+          </div>
         </div>
       </div>
 
