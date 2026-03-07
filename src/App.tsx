@@ -45,6 +45,7 @@ const App: React.FC = () => {
     editStack,
     addCommand,
     removeAt,
+    removeFromCurrentContext,
     clearProgram,
     loopStart,
     loopEnd,
@@ -53,6 +54,7 @@ const App: React.FC = () => {
     ifElse,
     ifEnd,
     loadProgram,
+    cancelBlock,
     isInLoop,
     isInIf,
     canElse,
@@ -261,7 +263,7 @@ const App: React.FC = () => {
             isInLoop={isInLoop}
             isInIf={isInIf}
             canElse={canElse}
-            hasProgram={program.length > 0}
+            hasProgram={program.length > 0 || isEditing}
             onCommand={addCommand}
             onLoopStart={loopStart}
             onLoopEnd={loopEnd}
@@ -301,6 +303,8 @@ const App: React.FC = () => {
             isRunning={isRunning}
             onRemove={removeAt}
             onUpdateTimes={updateTimes}
+            onCancelBlock={cancelBlock}
+            onRemoveFromContext={removeFromCurrentContext}
           />
         )}
 

@@ -41,6 +41,13 @@ export const useProgram = () => {
     updateStack([{ ...editStackRef.current[0], items: newItems }]);
   };
 
+  const removeFromCurrentContext = (path: number[]) => {
+    const stack = editStackRef.current;
+    const top = stack[stack.length - 1];
+    const newItems = removeAtPath(top.items, path);
+    updateStack([...stack.slice(0, -1), { ...top, items: newItems }]);
+  };
+
   const clearProgram = () => updateStack([{ frame: { kind: 'loop' }, items: [] }]);
 
   // ── Loop ──────────────────────────────────────────────────────────────────
@@ -115,6 +122,11 @@ export const useProgram = () => {
     updateStack([{ frame: { kind: 'loop' }, items: program }]);
   };
 
+  const cancelBlock = () => {
+    if (editStackRef.current.length <= 1) return;
+    updateStack(editStackRef.current.slice(0, -1));
+  };
+
   const isInLoop = editStack.length > 1 && editStack[editStack.length - 1].frame.kind === 'loop';
   const isInIf =
     editStack.length > 1 &&
@@ -128,6 +140,7 @@ export const useProgram = () => {
     editStack,
     addCommand,
     removeAt,
+    removeFromCurrentContext,
     clearProgram,
     loopStart,
     loopEnd,
@@ -136,6 +149,7 @@ export const useProgram = () => {
     ifElse,
     ifEnd,
     loadProgram,
+    cancelBlock,
     isInLoop,
     isInIf,
     canElse,

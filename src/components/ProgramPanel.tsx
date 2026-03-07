@@ -15,6 +15,8 @@ type Props = {
   isRunning: boolean;
   onRemove: (path: number[]) => void;
   onUpdateTimes: (path: number[], times: number) => void;
+  onCancelBlock: () => void;
+  onRemoveFromContext: (path: number[]) => void;
 };
 
 const IF_FRAME_LABELS: Record<string, string> = {
@@ -28,6 +30,8 @@ export const ProgramPanel: React.FC<Props> = ({
   isRunning,
   onRemove,
   onUpdateTimes,
+  onCancelBlock,
+  onRemoveFromContext,
 }) => (
   <div
     style={{
@@ -70,19 +74,21 @@ export const ProgramPanel: React.FC<Props> = ({
       return (
         <div
           key={i}
+          onClick={() => onCancelBlock()}
           style={{
             marginTop: 8,
             padding: '6px 8px',
             border: `1px dashed ${palette.border}`,
             borderRadius: 3,
             background: palette.bg,
+            cursor: 'pointer',
           }}
         >
           <div style={{ fontSize: 10, color: palette.border, marginBottom: 4, fontWeight: 700 }}>
             {label}
           </div>
           {entry.items.length > 0 ? (
-            <ProgramDisplay items={entry.items} depth={i + 1} />
+            <ProgramDisplay items={entry.items} depth={i + 1} onRemove={onRemoveFromContext} />
           ) : (
             <span style={{ color: '#999', fontSize: 11 }}>пусто</span>
           )}
