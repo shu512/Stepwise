@@ -144,7 +144,7 @@ export const Controls: React.FC<Props> = ({
 
         {/* If */}
         <select
-          disabled={isRunning || isInIf}
+          disabled={isRunning}
           value={selectedCondition}
           onChange={e => setSelectedCondition(e.target.value as Condition)}
           style={{
@@ -155,8 +155,8 @@ export const Controls: React.FC<Props> = ({
             fontFamily: 'monospace',
             fontSize: 12,
             color: '#2a2a2a',
-            opacity: isRunning || isInIf ? 0.4 : 1,
-            cursor: isRunning || isInIf ? 'not-allowed' : 'pointer',
+            opacity: isRunning ? 0.4 : 1,
+            cursor: isRunning ? 'not-allowed' : 'pointer',
           }}
         >
           {CONDITIONS.map(c => (
@@ -166,13 +166,9 @@ export const Controls: React.FC<Props> = ({
           ))}
         </select>
         <button
-          disabled={isRunning || isInIf}
+          disabled={isRunning}
           onClick={() => onIfStart(selectedCondition)}
-          style={
-            isRunning || isInIf
-              ? disabled()
-              : btn({ background: '#fff8e8', borderColor: '#c0a030' })
-          }
+          style={isRunning ? disabled() : btn({ background: '#fff8e8', borderColor: '#c0a030' })}
         >
           IF
         </button>

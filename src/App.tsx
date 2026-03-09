@@ -165,6 +165,12 @@ const App: React.FC = () => {
         color: '#2a2a2a',
       }}
     >
+      {showCTranslation && (
+        <div style={{ paddingTop: 38 }}>
+          <CodePanel program={program} />
+        </div>
+      )}
+
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
         {/* Чекбоксы + размер сетки */}
         <div
@@ -307,8 +313,6 @@ const App: React.FC = () => {
             onRemoveFromContext={removeFromCurrentContext}
           />
         )}
-
-        {showCTranslation && <CodePanel program={program} />}
 
         {message && (
           <div style={{ fontSize: 15, fontWeight: 700, color: '#2a9d8f' }}>{message}</div>

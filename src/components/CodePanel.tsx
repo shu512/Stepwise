@@ -11,7 +11,7 @@ export const CodePanel: React.FC<Props> = ({ program }) => {
   const code = generateC(program);
 
   return (
-    <div style={{ width: '100%', maxWidth: 500, fontFamily: 'monospace' }}>
+    <div style={{ width: '100%', fontFamily: 'monospace' }}>
       <button
         onClick={() => setVisible(v => !v)}
         style={{
