@@ -1,6 +1,17 @@
 import { useState, useRef } from 'react';
-import type { Command, ProgramItem, LoopBlock, IfBlock, Condition } from '../types';
-import { removeAtPath, updateLoopTimes } from '../utils/program';
+import type { CommandKind, ProgramItem, LoopBlock, IfBlock, Condition } from '../types';
+import {
+  removeAtPath,
+  updateLoopTimes,
+  removeById,
+  insertAtPath,
+  findContainerPath,
+  getContainerByPath,
+  replaceContainerByPath,
+  adjustPathAfterRemoval,
+} from '../utils/program';
+import { genId } from '../utils/ids';
+import { arrayMove } from '@dnd-kit/sortable';
 
 type StackFrame =
   | { kind: 'loop' }
@@ -13,8 +24,6 @@ type StackEntry = {
 };
 
 export const useProgram = () => {
-  // editStack: [{ frame, items }, ...]
-  // frame корневого контекста не используется, items — это программа
   const [editStack, setEditStack] = useState<StackEntry[]>([
     { frame: { kind: 'loop' }, items: [] },
   ]);
@@ -27,11 +36,13 @@ export const useProgram = () => {
 
   const currentItems = () => editStackRef.current[editStackRef.current.length - 1].items;
 
-  const addCommand = (cmd: Command) => {
+  const addCommand = (cmd: CommandKind) => {
     const stack = editStackRef.current;
     updateStack(
       stack.map((entry, i) =>
-        i === stack.length - 1 ? { ...entry, items: [...entry.items, cmd] } : entry,
+        i === stack.length - 1
+          ? { ...entry, items: [...entry.items, { id: genId(), type: 'command' as const, cmd }] }
+          : entry,
       ),
     );
   };
@@ -48,9 +59,16 @@ export const useProgram = () => {
     updateStack([...stack.slice(0, -1), { ...top, items: newItems }]);
   };
 
-  const clearProgram = () => updateStack([{ frame: { kind: 'loop' }, items: [] }]);
+  const clearProgram = () => {
+    updateStack([{ frame: { kind: 'loop' }, items: [] }]);
+  };
 
-  // ── Loop ──────────────────────────────────────────────────────────────────
+  const cancelBlock = () => {
+    if (editStackRef.current.length <= 1) return;
+    updateStack(editStackRef.current.slice(0, -1));
+  };
+
+  // ── Loop ─────────────────────────────────────────────────────────────────
 
   const loopStart = () => {
     updateStack([...editStackRef.current, { frame: { kind: 'loop' }, items: [] }]);
@@ -59,7 +77,6 @@ export const useProgram = () => {
   const loopEnd = () => {
     const stack = editStackRef.current;
     if (stack.length < 2 || stack[stack.length - 1].frame.kind !== 'loop') return;
-
     const rawInput = window.prompt('Сколько раз повторить?', '2');
     if (rawInput === null) return;
     const times = parseInt(rawInput, 10);
@@ -67,16 +84,10 @@ export const useProgram = () => {
       alert('Введи число ≥ 1');
       return;
     }
-
     const body = currentItems();
-    const loop: LoopBlock = { type: 'loop', times, body };
+    const loop: LoopBlock = { id: genId(), type: 'loop', times, body };
     const parent = stack[stack.length - 2];
     updateStack([...stack.slice(0, -2), { ...parent, items: [...parent.items, loop] }]);
-  };
-
-  const updateTimes = (path: number[], times: number) => {
-    const newItems = updateLoopTimes(editStackRef.current[0].items, path, times);
-    updateStack([{ ...editStackRef.current[0], items: newItems }]);
   };
 
   // ── If ────────────────────────────────────────────────────────────────────
@@ -89,7 +100,6 @@ export const useProgram = () => {
     const stack = editStackRef.current;
     const top = stack[stack.length - 1];
     if (top.frame.kind !== 'if_then') return;
-
     const thenItems = top.items;
     updateStack([
       ...stack.slice(0, -1),
@@ -101,30 +111,102 @@ export const useProgram = () => {
     const stack = editStackRef.current;
     const top = stack[stack.length - 1];
     if (top.frame.kind !== 'if_then' && top.frame.kind !== 'if_else') return;
-
     let ifBlock: IfBlock;
     if (top.frame.kind === 'if_then') {
-      ifBlock = { type: 'if', condition: top.frame.condition, then: top.items, else: [] };
+      ifBlock = {
+        id: genId(),
+        type: 'if',
+        condition: top.frame.condition,
+        then: top.items,
+        else: [],
+      };
     } else {
       ifBlock = {
+        id: genId(),
         type: 'if',
         condition: top.frame.condition,
         then: top.frame.then,
         else: top.items,
       };
     }
-
     const parent = stack[stack.length - 2];
     updateStack([...stack.slice(0, -2), { ...parent, items: [...parent.items, ifBlock] }]);
   };
 
-  const loadProgram = (program: ProgramItem[]) => {
-    updateStack([{ frame: { kind: 'loop' }, items: program }]);
+  // ── Drag and Drop ─────────────────────────────────────────────────────────
+
+  const moveItem = (activeId: string, overId: string, overContainerPath: number[]) => {
+    const program = editStackRef.current[0].items;
+
+    const activeContainerPath = findContainerPath(program, activeId);
+    if (activeContainerPath === null) return;
+
+    const activeContainer = getContainerByPath(program, activeContainerPath);
+    const activeIndex = activeContainer.findIndex(item => item.id === activeId);
+    if (activeIndex === -1) return;
+    const activeItem = activeContainer[activeIndex];
+
+    const withoutActive = removeById(program, activeId);
+
+    if (overId === '') {
+      // Дропнули на контейнер — вставить в конец
+      // overContainerPath указывает на блок (loop/if), getContainerByPath войдёт внутрь
+      const adjustedPath = adjustPathAfterRemoval(
+        overContainerPath,
+        activeContainerPath,
+        activeIndex,
+      );
+      const overContainer = getContainerByPath(withoutActive, adjustedPath);
+      const newProgram = insertAtPath(
+        withoutActive,
+        adjustedPath,
+        overContainer.length,
+        activeItem,
+      );
+      updateStack([{ ...editStackRef.current[0], items: newProgram }]);
+      return;
+    }
+
+    const isSameContainer = activeContainerPath.join('-') === overContainerPath.join('-');
+
+    if (isSameContainer) {
+      const overIndex = activeContainer.findIndex(item => item.id === overId);
+      if (overIndex === -1) return;
+      const newContainer = arrayMove(activeContainer, activeIndex, overIndex);
+      const newProgram = replaceContainerByPath(program, activeContainerPath, newContainer);
+      updateStack([{ ...editStackRef.current[0], items: newProgram }]);
+    } else {
+      const adjustedContainerPath = adjustPathAfterRemoval(
+        overContainerPath,
+        activeContainerPath,
+        activeIndex,
+      );
+      const overContainer = getContainerByPath(withoutActive, adjustedContainerPath);
+      const overIndex = overContainer.findIndex(item => item.id === overId);
+      const insertIndex = overIndex === -1 ? overContainer.length : overIndex;
+      const newProgram = insertAtPath(
+        withoutActive,
+        adjustedContainerPath,
+        insertIndex,
+        activeItem,
+      );
+      updateStack([{ ...editStackRef.current[0], items: newProgram }]);
+    }
   };
 
-  const cancelBlock = () => {
-    if (editStackRef.current.length <= 1) return;
-    updateStack(editStackRef.current.slice(0, -1));
+  const insertNewItem = (item: ProgramItem, overContainerPath: number[], overIndex: number) => {
+    const program = editStackRef.current[0].items;
+    const newProgram = insertAtPath(program, overContainerPath, overIndex, item);
+    updateStack([{ ...editStackRef.current[0], items: newProgram }]);
+  };
+
+  const updateTimes = (path: number[], times: number) => {
+    const newItems = updateLoopTimes(editStackRef.current[0].items, path, times);
+    updateStack([{ ...editStackRef.current[0], items: newItems }]);
+  };
+
+  const loadProgram = (program: ProgramItem[]) => {
+    updateStack([{ frame: { kind: 'loop' }, items: program }]);
   };
 
   const isInLoop = editStack.length > 1 && editStack[editStack.length - 1].frame.kind === 'loop';
@@ -142,14 +224,16 @@ export const useProgram = () => {
     removeAt,
     removeFromCurrentContext,
     clearProgram,
+    cancelBlock,
     loopStart,
     loopEnd,
-    updateTimes,
     ifStart,
     ifElse,
     ifEnd,
+    moveItem,
+    insertNewItem,
+    updateTimes,
     loadProgram,
-    cancelBlock,
     isInLoop,
     isInIf,
     canElse,

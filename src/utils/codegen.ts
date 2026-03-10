@@ -22,11 +22,11 @@ const itemsToC = (items: ProgramItem[], depth: number): string => {
   const lines: string[] = [];
 
   for (const item of items) {
-    if (typeof item === 'string') {
-      if (item === 'STOP') {
+    if (item.type === 'command') {
+      if (item.cmd === 'STOP') {
         lines.push(`${pad}return;`);
       } else {
-        lines.push(`${pad}${item}();`);
+        lines.push(`${pad}${item.cmd}();`);
       }
     } else if (item.type === 'loop') {
       lines.push(`${pad}for (int i = 0; i < ${item.times}; i++) {`);

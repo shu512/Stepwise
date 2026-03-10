@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
-import { STEP_DELAY } from '../constants';
+import { useState, useRef } from 'react';
 import type { Position, ProgramItem } from '../types';
-import type { RuntimeState } from '../utils/interpreter';
+import { STEP_DELAY } from '../constants';
+import { move, isSame } from '../utils/program';
 import { interpret } from '../utils/interpreter';
-import { isSame, move } from '../utils/program';
+import type { RuntimeState } from '../utils/interpreter';
 import confetti from 'canvas-confetti';
 
 export const useRobot = (
@@ -70,7 +70,6 @@ export const useRobot = (
       );
 
       if (next === null) {
-        // bump in strictWalls mode
         clearInterval(intervalRef.current!);
         setIsRunning(false);
         setIsError(true);

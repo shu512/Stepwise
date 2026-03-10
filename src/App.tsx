@@ -1,3 +1,15 @@
+import { useState, useRef } from 'react';
+import {
+  DndContext,
+  PointerSensor,
+  pointerWithin,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+  type Collision,
+} from '@dnd-kit/core';
 import React from 'react';
 import { Grid } from './components/Grid';
 import { Controls } from './components/Controls';
@@ -10,8 +22,40 @@ import { useProgram } from './hooks/useProgram';
 import { useMaps } from './hooks/useMaps';
 import { usePersistedState } from './hooks/usePersistedState';
 import { DEFAULT_GRID_SIZE, MIN_GRID_SIZE, MAX_GRID_SIZE } from './constants';
-import type { DrawMode, SavedMap } from './types';
+import type { DrawMode, ProgramItem, SavedMap } from './types';
 import { GitHubIcon } from './components/GitHubIcon';
+import { findContainerPath, findContainerPathById, getContainerByPath } from './utils/program';
+import { genId } from './utils/ids';
+
+// ── Хелпер: найти элемент по id рекурсивно ───────────────────────────────────
+function findItemById(items: ProgramItem[], id: string): ProgramItem | null {
+  for (const item of items) {
+    if (item.id === id) return item;
+    if (item.type === 'loop') {
+      const found = findItemById(item.body, id);
+      if (found) return found;
+    }
+    if (item.type === 'if') {
+      const f1 = findItemById(item.then, id);
+      if (f1) return f1;
+      const f2 = findItemById(item.else, id);
+      if (f2) return f2;
+    }
+  }
+  return null;
+}
+
+// ── Глубина контейнера по его id ─────────────────────────────────────────────
+function containerDepth(id: string, program: ProgramItem[]): number {
+  if (id === 'container:root') return 0;
+  if (id.startsWith('container:')) {
+    const inner = id.slice('container:'.length);
+    const [blockId] = inner.split(':');
+    const blockPath = findContainerPathById(program, blockId);
+    return blockPath ? blockPath.length + 1 : 1;
+  }
+  return -1;
+}
 
 const App: React.FC = () => {
   const [showCode, setShowCode] = usePersistedState('ui-show-code', false);
@@ -21,6 +65,10 @@ const App: React.FC = () => {
   const [showManual, setShowManual] = usePersistedState('ui-show-manual', false);
   const [strictWalls, setStrictWalls] = usePersistedState('ui-strict-walls', false);
   const [gridSize, setGridSize] = usePersistedState('ui-grid-size', DEFAULT_GRID_SIZE);
+
+  // DnD стейт — живёт здесь, т.к. DndContext тоже здесь
+  const [activeItem, setActiveItem] = useState<ProgramItem | null>(null);
+  const [isOverContainer, setIsOverContainer] = useState(false);
 
   const {
     start,
@@ -44,6 +92,8 @@ const App: React.FC = () => {
     program,
     editStack,
     addCommand,
+    moveItem,
+    insertNewItem,
     removeAt,
     removeFromCurrentContext,
     clearProgram,
@@ -62,6 +112,134 @@ const App: React.FC = () => {
   } = useProgram();
   const { maps, saveMap, deleteMap, importMap, renameMap, importLearningMaps } = useMaps();
 
+  // ── DnD sensors ──────────────────────────────────────────────────────────
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  // Держим актуальный program в рефе для использования в замыканиях dnd handlers
+  const programRef = useRef(program);
+  programRef.current = program;
+
+  const handleDragStart = (event: DragStartEvent) => {
+    const data = event.active.data.current;
+    if (data?.source === 'controls') {
+      // Preview для команды из Controls
+      setActiveItem({ id: '__preview__', type: 'command', cmd: data.cmd });
+      return;
+    }
+    const id = String(event.active.id);
+    setActiveItem(findItemById(programRef.current, id) ?? null);
+  };
+
+  const handleDragOver = (e: any) => {
+    const overId = String(e.over?.id ?? '');
+    // Скрываем ghost только над вложенными контейнерами (не root)
+    const isNested = overId.startsWith('container:') && overId !== 'container:root';
+    setIsOverContainer(isNested);
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveItem(null);
+    const { active, over } = event;
+    if (!over) return;
+
+    const data = active.data.current;
+    const overId = String(over.id);
+    const prog = programRef.current;
+
+    // ── Drag из Controls (новый элемент) ───────────────────────────────
+    if (data?.source === 'controls') {
+      const newItem: ProgramItem = { id: genId(), type: 'command', cmd: data.cmd };
+
+      if (overId.startsWith('container:')) {
+        const inner = overId.slice('container:'.length);
+        if (inner === 'root') {
+          insertNewItem(newItem, [], prog.length);
+        } else {
+          const [blockId, branchKey] = inner.split(':');
+          const blockPath = findContainerPathById(prog, blockId);
+          if (!blockPath) return;
+          let containerPath: number[];
+          if (!branchKey || branchKey === 'body') containerPath = blockPath;
+          else if (branchKey === 'then') containerPath = [...blockPath, 0];
+          else containerPath = [...blockPath, 1];
+          const container = getContainerByPath(prog, containerPath);
+          insertNewItem(newItem, containerPath, container.length);
+        }
+      } else {
+        // Дропнули на элемент — вставить перед ним
+        const containerPath = findContainerPath(prog, overId);
+        if (!containerPath) return;
+        const container = getContainerByPath(prog, containerPath);
+        const index = container.findIndex(item => item.id === overId);
+        insertNewItem(newItem, containerPath, index === -1 ? container.length : index);
+      }
+      return;
+    }
+
+    // ── Перемещение внутри программы ───────────────────────────────────
+    if (active.id === over.id) return;
+    const activeId = String(active.id);
+
+    if (overId.startsWith('container:')) {
+      const inner = overId.slice('container:'.length);
+      if (inner === 'root') {
+        moveItem(activeId, '', []);
+        return;
+      }
+      const [blockId, branchKey] = inner.split(':');
+      const blockPath = findContainerPathById(prog, blockId);
+      if (!blockPath) return;
+      let overContainerPath: number[];
+      if (!branchKey || branchKey === 'body') overContainerPath = blockPath;
+      else if (branchKey === 'then') overContainerPath = [...blockPath, 0];
+      else overContainerPath = [...blockPath, 1];
+      moveItem(activeId, '', overContainerPath);
+    } else {
+      const containerPath = findContainerPath(prog, overId);
+      if (containerPath === null) return;
+      moveItem(activeId, overId, containerPath);
+    }
+  };
+
+  const collisionDetection = (args: any) => {
+    const prog = programRef.current;
+    const pointerCollisions: Collision[] = pointerWithin(args);
+
+    // 1. Точное попадание на команду
+    const leafHit = pointerCollisions.find((c: Collision) => {
+      const id = String(c.id);
+      if (id.startsWith('container:')) return false;
+      return findItemById(prog, id)?.type === 'command';
+    });
+    if (leafHit) return [leafHit];
+
+    // 2. Самый глубокий вложенный контейнер
+    const deepContainerHit = pointerCollisions
+      .filter((c: Collision) => {
+        const id = String(c.id);
+        return id.startsWith('container:') && id !== 'container:root';
+      })
+      .sort(
+        (a: Collision, b: Collision) =>
+          containerDepth(String(b.id), prog) - containerDepth(String(a.id), prog),
+      )[0];
+    if (deepContainerHit) return [deepContainerHit];
+
+    // 3. closestCenter для позиционирования между блоками (решает проблему краёв loop)
+    const centerCollisions: Collision[] = closestCenter(args);
+    if (centerCollisions.length > 0) {
+      const filtered = centerCollisions.filter((c: Collision) => {
+        const id = String(c.id);
+        return !id.startsWith('container:') || id === 'container:root';
+      });
+      if (filtered.length > 0) return [filtered[0]];
+      return centerCollisions;
+    }
+
+    return pointerCollisions.length > 0 ? [pointerCollisions[0]] : [];
+  };
+
+  // ── Прочие handlers ──────────────────────────────────────────────────────
   const handleGridSizeChange = (raw: string) => {
     const n = parseInt(raw, 10);
     if (isNaN(n) || n < MIN_GRID_SIZE || n > MAX_GRID_SIZE) return;
@@ -152,189 +330,182 @@ const App: React.FC = () => {
   });
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        background: '#f5f0e8',
-        display: 'flex',
-        alignItems: 'flex-start',
-        justifyContent: 'center',
-        gap: 24,
-        padding: 24,
-        fontFamily: 'monospace',
-        color: '#2a2a2a',
-      }}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={collisionDetection}
+      onDragStart={handleDragStart}
+      onDragOver={handleDragOver}
+      onDragEnd={handleDragEnd}
     >
-      {showCTranslation && (
-        <div style={{ paddingTop: 38 }}>
-          <CodePanel program={program} />
-        </div>
-      )}
-
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-        {/* Чекбоксы + размер сетки */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 12,
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          {checkbox('код', showCode, handleShowCode)}
-          {checkbox('перевод на C', showCTranslation, handleShowCTranslation)}
-          {checkbox('карты', showMaps, setShowMaps)}
-          {checkbox('рисование', showDraw, handleShowDraw)}
-          {checkbox('ручное управление', showManual, handleShowManual)}
-          {checkbox('столкновения со стеной', strictWalls, setStrictWalls)}
-          <label
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 5,
-              fontSize: 11,
-              color: '#6b5344',
-              fontFamily: 'monospace',
-            }}
-          >
-            сетка
-            <input
-              type="number"
-              value={gridSize}
-              min={MIN_GRID_SIZE}
-              max={MAX_GRID_SIZE}
-              onChange={e => handleGridSizeChange(e.target.value)}
-              style={{
-                width: 40,
-                padding: '2px 4px',
-                border: '1px solid #b0a090',
-                borderRadius: 3,
-                background: '#fdfaf4',
-                fontFamily: 'monospace',
-                fontSize: 11,
-                color: '#2a2a2a',
-                textAlign: 'center',
-              }}
-            />
-          </label>
-        </div>
-
-        {/* Режим рисования */}
-        {showDraw && (
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            <span style={{ fontSize: 11, color: '#a09080' }}>рисовать:</span>
-            {DRAW_MODES.map(({ mode, label, color }) => (
-              <button
-                key={mode}
-                onClick={() => setDrawMode(mode)}
-                style={btn({
-                  color,
-                  borderColor: drawMode === mode ? color : '#b0a090',
-                  background: drawMode === mode ? '#fdfaf4' : '#f0ebe0',
-                  fontWeight: drawMode === mode ? 700 : 500,
-                  boxShadow: drawMode === mode ? `inset 0 -2px 0 ${color}` : 'none',
-                })}
-              >
-                {label}
-              </button>
-            ))}
+      <div
+        style={{
+          minHeight: '100vh',
+          background: '#f5f0e8',
+          display: 'flex',
+          alignItems: 'flex-start',
+          justifyContent: 'center',
+          gap: 24,
+          padding: 24,
+          fontFamily: 'monospace',
+          color: '#2a2a2a',
+        }}
+      >
+        {showCTranslation && (
+          <div style={{ paddingTop: 38 }}>
+            <CodePanel program={program} />
           </div>
         )}
 
-        <Grid
-          gridSize={gridSize}
-          robot={robot}
-          start={start}
-          finish={finish}
-          walls={walls}
-          isRunning={isRunning || showManual}
-          isManual={showManual}
-          isError={isError}
-          onCellClick={(row, col) => {
-            if (showManual) {
-              teleport({ row, col });
-              return;
-            }
-            if (showDraw && !isRunning) {
-              handleCellClick(row, col);
-              return;
-            }
-          }}
-        />
-
-        {showCode && (
-          <Controls
-            isRunning={isRunning}
-            isInLoop={isInLoop}
-            isInIf={isInIf}
-            canElse={canElse}
-            hasProgram={program.length > 0 || isEditing}
-            onCommand={addCommand}
-            onLoopStart={loopStart}
-            onLoopEnd={loopEnd}
-            onIfStart={ifStart}
-            onIfElse={ifElse}
-            onIfEnd={ifEnd}
-            onClear={clearProgram}
-            onRun={() => {
-              if (isEditing) {
-                alert('Закрой открытый блок!');
-                return;
-              }
-              runProgram(program);
-            }}
-            onReset={reset}
-          />
-        )}
-
-        {isEditing && showCode && (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+          {/* Чекбоксы + размер сетки */}
           <div
             style={{
-              fontSize: 12,
-              color: '#a0522d',
-              border: '1px dashed #a0522d',
-              padding: '4px 10px',
-              borderRadius: 3,
+              display: 'flex',
+              gap: 12,
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+              alignItems: 'center',
             }}
           >
-            записываю тело блока (глубина {editStack.length - 1}) — закрой блок
+            {checkbox('код', showCode, handleShowCode)}
+            {checkbox('перевод на C', showCTranslation, handleShowCTranslation)}
+            {checkbox('карты', showMaps, setShowMaps)}
+            {checkbox('рисование', showDraw, handleShowDraw)}
+            {checkbox('ручное управление', showManual, handleShowManual)}
+            {checkbox('столкновения со стеной', strictWalls, setStrictWalls)}
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 5,
+                fontSize: 11,
+                color: '#6b5344',
+                fontFamily: 'monospace',
+              }}
+            >
+              сетка
+              <input
+                type="number"
+                value={gridSize}
+                min={MIN_GRID_SIZE}
+                max={MAX_GRID_SIZE}
+                onChange={e => handleGridSizeChange(e.target.value)}
+                style={{
+                  width: 40,
+                  padding: '2px 4px',
+                  border: '1px solid #b0a090',
+                  borderRadius: 3,
+                  background: '#fdfaf4',
+                  fontFamily: 'monospace',
+                  fontSize: 11,
+                  color: '#2a2a2a',
+                  textAlign: 'center',
+                }}
+              />
+            </label>
           </div>
-        )}
 
-        {showCode && (
-          <ProgramPanel
-            program={program}
-            editStack={editStack as any}
-            isRunning={isRunning}
-            onRemove={removeAt}
-            onUpdateTimes={updateTimes}
-            onCancelBlock={cancelBlock}
-            onRemoveFromContext={removeFromCurrentContext}
+          {/* Режим рисования */}
+          {showDraw && (
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: '#a09080' }}>рисовать:</span>
+              {DRAW_MODES.map(({ mode, label, color }) => (
+                <button
+                  key={mode}
+                  onClick={() => setDrawMode(mode)}
+                  style={btn({
+                    color,
+                    borderColor: drawMode === mode ? color : '#b0a090',
+                    background: drawMode === mode ? '#fdfaf4' : '#f0ebe0',
+                    fontWeight: drawMode === mode ? 700 : 500,
+                    boxShadow: drawMode === mode ? `inset 0 -2px 0 ${color}` : 'none',
+                  })}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <Grid
+            gridSize={gridSize}
+            robot={robot}
+            start={start}
+            finish={finish}
+            walls={walls}
+            isRunning={isRunning || showManual}
+            isManual={showManual}
+            isError={isError}
+            onCellClick={(row, col) => {
+              if (showManual) {
+                teleport({ row, col });
+                return;
+              }
+              if (showDraw && !isRunning) {
+                handleCellClick(row, col);
+                return;
+              }
+            }}
           />
-        )}
 
-        {message && (
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#2a9d8f' }}>{message}</div>
-        )}
+          {showCode && (
+            <Controls
+              isRunning={isRunning}
+              isInLoop={isInLoop}
+              isInIf={isInIf}
+              canElse={canElse}
+              hasProgram={program.length > 0 || isEditing}
+              onCommand={addCommand}
+              onLoopStart={loopStart}
+              onLoopEnd={loopEnd}
+              onIfStart={ifStart}
+              onIfElse={ifElse}
+              onIfEnd={ifEnd}
+              onClear={clearProgram}
+              onRun={() => {
+                if (isEditing) {
+                  alert('Закрой открытый блок!');
+                  return;
+                }
+                runProgram(program);
+              }}
+              onReset={reset}
+            />
+          )}
 
-        {/* Подсказка + github внизу */}
-        <div
-          style={{
-            fontSize: 10,
-            color: '#b0a090',
-            display: 'flex',
-            gap: 12,
-            alignItems: 'center',
-          }}
-        >
-          <span>
-            {showManual
-              ? 'клик по клетке — переместить робота'
-              : showDraw
-                ? 'клик по ячейке — рисовать'
-                : 'клик по команде — удалить'}
-          </span>
+          {isEditing && showCode && (
+            <div
+              style={{
+                fontSize: 12,
+                color: '#a0522d',
+                border: '1px dashed #a0522d',
+                padding: '4px 10px',
+                borderRadius: 3,
+              }}
+            >
+              записываю тело блока (глубина {editStack.length - 1}) — закрой блок
+            </div>
+          )}
+
+          {showCode && (
+            <ProgramPanel
+              program={program}
+              editStack={editStack as any}
+              isRunning={isRunning}
+              onRemove={removeAt}
+              onRemoveFromContext={removeFromCurrentContext}
+              onUpdateTimes={updateTimes}
+              onCancelBlock={cancelBlock}
+              activeItem={activeItem}
+              isOverContainer={isOverContainer}
+            />
+          )}
+
+          {message && (
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#2a9d8f' }}>{message}</div>
+          )}
+
+          {/* Подсказка + github внизу */}
           <div
             style={{
               fontSize: 10,
@@ -354,28 +525,28 @@ const App: React.FC = () => {
             <GitHubIcon />
           </div>
         </div>
-      </div>
 
-      {showMaps && (
-        <div style={{ paddingTop: 8 }}>
-          <MapsSidebar
-            maps={maps}
-            currentStart={start}
-            currentFinish={finish}
-            currentWalls={walls}
-            currentProgram={program}
-            gridSize={gridSize}
-            strictWalls={strictWalls}
-            onSave={saveMap}
-            onLoad={handleLoadMap}
-            onDelete={deleteMap}
-            onImport={importMap}
-            onRename={renameMap}
-            onImportBulk={importLearningMaps}
-          />
-        </div>
-      )}
-    </div>
+        {showMaps && (
+          <div style={{ paddingTop: 8 }}>
+            <MapsSidebar
+              maps={maps}
+              currentStart={start}
+              currentFinish={finish}
+              currentWalls={walls}
+              currentProgram={program}
+              gridSize={gridSize}
+              strictWalls={strictWalls}
+              onSave={saveMap}
+              onLoad={handleLoadMap}
+              onDelete={deleteMap}
+              onImport={importMap}
+              onRename={renameMap}
+              onImportBulk={importLearningMaps}
+            />
+          </div>
+        )}
+      </div>
+    </DndContext>
   );
 };
 

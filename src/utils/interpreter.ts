@@ -1,4 +1,4 @@
-import type { ProgramItem, Command, Condition } from '../types';
+import type { ProgramItem, CommandKind, Condition } from '../types';
 import type { Position } from '../types';
 import { isSame } from './program';
 
@@ -42,11 +42,11 @@ type InterpreterResult = 'stop' | 'done';
 export function* interpret(
   items: ProgramItem[],
   getState: () => RuntimeState,
-): Generator<Command, InterpreterResult> {
+): Generator<CommandKind, InterpreterResult> {
   for (const item of items) {
-    if (typeof item === 'string') {
-      if (item === 'STOP') return 'stop';
-      yield item as Command;
+    if (item.type === 'command') {
+      if (item.cmd === 'STOP') return 'stop';
+      yield item.cmd;
     } else if (item.type === 'loop') {
       for (let i = 0; i < item.times; i++) {
         const result = yield* interpret(item.body, getState);

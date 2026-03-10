@@ -1,13 +1,14 @@
 import React from 'react';
-import type { Command } from '../types';
+import type { CommandKind } from '../types';
 import { CMD_COLOR } from '../constants';
 
 type Props = {
-  cmd: Command;
+  cmd: CommandKind;
   onClick?: () => void;
+  dimmed?: boolean;
 };
 
-export const CommandChip: React.FC<Props> = ({ cmd, onClick }) => (
+export const CommandChip: React.FC<Props> = ({ cmd, onClick, dimmed }) => (
   <div
     onClick={e => {
       e.stopPropagation();
@@ -28,6 +29,7 @@ export const CommandChip: React.FC<Props> = ({ cmd, onClick }) => (
       cursor: onClick ? 'pointer' : 'default',
       userSelect: 'none',
       border: '1px solid rgba(0,0,0,0.15)',
+      opacity: dimmed ? 0.5 : 1,
     }}
   >
     {cmd}
