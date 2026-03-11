@@ -5,6 +5,7 @@ import type { Condition, ProgramItem } from '../types';
 import { countSteps } from '../utils/program';
 import { CommandChip } from './CommandChip';
 import { ProgramDisplay } from './ProgramDisplay';
+import { Spinner } from './Spinner';
 
 type StackEntry = {
   frame: { kind: string; condition?: Condition; then?: ProgramItem[] };
@@ -21,6 +22,13 @@ type Props = {
   onCancelBlock: () => void;
   activeItem: ProgramItem | null;
   isOverContainer: boolean;
+  showCInput: boolean;
+  cCode: string;
+  onCCodeChange: (v: string) => void;
+  onParseCode: () => void;
+  isParsing: boolean;
+  parseError: string;
+  modelUsed: string;
 };
 
 const IF_FRAME_LABELS: Record<string, string> = {
@@ -38,32 +46,171 @@ export const ProgramPanel: React.FC<Props> = ({
   onCancelBlock,
   activeItem,
   isOverContainer,
+  showCInput,
+  cCode,
+  onCCodeChange,
+  onParseCode,
+  isParsing,
+  parseError,
+  modelUsed,
 }) => {
   return (
     <div
       style={{
         width: '100%',
         maxWidth: 500,
-        minHeight: 56,
         border: '1px solid #b0a090',
         borderRadius: 3,
-        padding: 10,
         background: '#fdfaf4',
         fontFamily: 'monospace',
+        overflow: 'hidden',
       }}
     >
-      <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
-        ПРОГРАММА {program.length > 0 && `· ~${countSteps(program)} шагов`}
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      {/* Блоки программы */}
+      <div style={{ padding: 10, minHeight: 56 }}>
+        <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
+          ПРОГРАММА {program.length > 0 && `· ~${countSteps(program)} шагов`}
+        </div>
+
+        {program.length > 0 ? (
+          <ProgramDisplay
+            items={program}
+            depth={0}
+            containerPath={[]}
+            onRemove={isRunning ? () => {} : onRemove}
+            onUpdateTimes={isRunning ? () => {} : onUpdateTimes}
+            disabled={isRunning}
+          />
+        ) : (
+          <span style={{ color: '#c0b0a0', fontSize: 12 }}>пусто</span>
+        )}
+
+        {/* Незакрытые контексты */}
+        {editStack.slice(1).map((entry, i) => {
+          const kind = entry.frame.kind;
+          const isLoop = kind === 'loop';
+          const palette = isLoop
+            ? LOOP_COLORS[(i + 1) % LOOP_COLORS.length]
+            : { bg: '#fff8e8', border: '#c0a030' };
+          const label = isLoop
+            ? `тело цикла — уровень ${i + 1}`
+            : `if ${(entry.frame as any).condition} → ${IF_FRAME_LABELS[kind] ?? kind}`;
+
+          return (
+            <div
+              key={i}
+              onClick={onCancelBlock}
+              title="клик — отменить блок"
+              style={{
+                marginTop: 8,
+                padding: '6px 8px',
+                border: `1px dashed ${palette.border}`,
+                borderRadius: 3,
+                background: palette.bg,
+                cursor: 'pointer',
+              }}
+            >
+              <div
+                style={{ fontSize: 10, color: palette.border, marginBottom: 4, fontWeight: 700 }}
+              >
+                {label}
+              </div>
+              {entry.items.length > 0 ? (
+                <ProgramDisplay
+                  items={entry.items}
+                  depth={i + 1}
+                  onRemove={onRemoveFromContext}
+                  onUpdateTimes={() => {}}
+                  disabled={false}
+                />
+              ) : (
+                <span style={{ color: '#999', fontSize: 11 }}>пусто</span>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      <ProgramDisplay
-        items={program}
-        depth={0}
-        containerPath={[]}
-        onRemove={isRunning ? () => {} : onRemove}
-        onUpdateTimes={isRunning ? () => {} : onUpdateTimes}
-        disabled={isRunning}
-      />
+      {/* C-input секция */}
+      {showCInput && (
+        <div
+          style={{
+            borderTop: '1px solid #e0d8cc',
+            padding: 10,
+            background: '#f7f3eb',
+          }}
+        >
+          <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
+            ВВОД C-КОДА {modelUsed && <span style={{ color: '#b0a090' }}>· {modelUsed}</span>}
+          </div>
+          <textarea
+            disabled={isParsing}
+            value={cCode}
+            onChange={e => onCCodeChange(e.target.value)}
+            onKeyDown={e => {
+              // Ctrl+Enter — запустить парсинг
+              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                onParseCode();
+              }
+            }}
+            placeholder={'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n}'}
+            spellCheck={false}
+            style={{
+              width: '100%',
+              minHeight: 120,
+              resize: 'vertical',
+              padding: '6px 8px',
+              border: '1px solid #c0b0a0',
+              borderRadius: 3,
+              background: '#1e1e1e',
+              color: '#d4d4d4',
+              fontFamily: 'monospace',
+              fontSize: 12,
+              lineHeight: 1.5,
+              outline: 'none',
+              boxSizing: 'border-box',
+              opacity: isParsing ? 0.5 : 1,
+              cursor: isParsing ? 'not-allowed' : 'text',
+            }}
+          />
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginTop: 6,
+              gap: 8,
+            }}
+          >
+            {parseError ? (
+              <span style={{ fontSize: 11, color: '#c0392b', flex: 1 }}>⚠ {parseError}</span>
+            ) : (
+              <span style={{ fontSize: 10, color: '#b0a090' }}>Ctrl+Enter — выполнить</span>
+            )}
+            <button
+              onClick={onParseCode}
+              disabled={isParsing || !cCode.trim()}
+              style={{
+                padding: '4px 14px',
+                border: '1px solid #4caf50',
+                borderRadius: 3,
+                background: isParsing || !cCode.trim() ? '#e8e0d4' : '#c8e6c9',
+                color: isParsing || !cCode.trim() ? '#a09080' : '#2a2a2a',
+                fontFamily: 'monospace',
+                fontSize: 12,
+                fontWeight: 600,
+                cursor: isParsing || !cCode.trim() ? 'not-allowed' : 'pointer',
+                opacity: isParsing || !cCode.trim() ? 0.6 : 1,
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isParsing ? <Spinner /> : '▶ в блоки'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <DragOverlay>
         {activeItem && !isOverContainer && (
@@ -106,49 +253,6 @@ export const ProgramPanel: React.FC<Props> = ({
           </>
         )}
       </DragOverlay>
-
-      {/* Незакрытые контексты */}
-      {editStack.slice(1).map((entry, i) => {
-        const kind = entry.frame.kind;
-        const isLoop = kind === 'loop';
-        const palette = isLoop
-          ? LOOP_COLORS[(i + 1) % LOOP_COLORS.length]
-          : { bg: '#fff8e8', border: '#c0a030' };
-        const label = isLoop
-          ? `тело цикла — уровень ${i + 1}`
-          : `if ${(entry.frame as any).condition} → ${IF_FRAME_LABELS[kind] ?? kind}`;
-
-        return (
-          <div
-            key={i}
-            onClick={onCancelBlock}
-            title="клик — отменить блок"
-            style={{
-              marginTop: 8,
-              padding: '6px 8px',
-              border: `1px dashed ${palette.border}`,
-              borderRadius: 3,
-              background: palette.bg,
-              cursor: 'pointer',
-            }}
-          >
-            <div style={{ fontSize: 10, color: palette.border, marginBottom: 4, fontWeight: 700 }}>
-              {label}
-            </div>
-            {entry.items.length > 0 ? (
-              <ProgramDisplay
-                items={entry.items}
-                depth={i + 1}
-                onRemove={onRemoveFromContext}
-                onUpdateTimes={() => {}}
-                disabled={false}
-              />
-            ) : (
-              <span style={{ color: '#999', fontSize: 11 }}>пусто</span>
-            )}
-          </div>
-        );
-      })}
     </div>
   );
 };

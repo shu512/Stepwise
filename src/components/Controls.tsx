@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDraggable } from '@dnd-kit/core';
 import type { CommandKind, Condition } from '../types';
+import { Spinner } from './Spinner';
 
 type Props = {
   isRunning: boolean;
@@ -26,20 +27,6 @@ const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'wall_left', label: 'стена слева' },
   { value: 'wall_right', label: 'стена справа' },
 ];
-
-const Spinner = () => (
-  <span
-    style={{
-      display: 'inline-block',
-      width: 12,
-      height: 12,
-      border: '2px solid #b0a090',
-      borderTopColor: '#6b5344',
-      borderRadius: '50%',
-      animation: 'spin 0.7s linear infinite',
-    }}
-  />
-);
 
 const Divider = () => <span style={{ color: '#c0b0a0', fontSize: 16, userSelect: 'none' }}>|</span>;
 

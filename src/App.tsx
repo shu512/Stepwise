@@ -27,7 +27,6 @@ import { GitHubIcon } from './components/GitHubIcon';
 import { findContainerPath, findContainerPathById, getContainerByPath } from './utils/program';
 import { genId } from './utils/ids';
 
-// ── Хелпер: найти элемент по id рекурсивно ───────────────────────────────────
 function findItemById(items: ProgramItem[], id: string): ProgramItem | null {
   for (const item of items) {
     if (item.id === id) return item;
@@ -45,7 +44,6 @@ function findItemById(items: ProgramItem[], id: string): ProgramItem | null {
   return null;
 }
 
-// ── Глубина контейнера по его id ─────────────────────────────────────────────
 function containerDepth(id: string, program: ProgramItem[]): number {
   if (id === 'container:root') return 0;
   if (id.startsWith('container:')) {
@@ -63,12 +61,17 @@ const App: React.FC = () => {
   const [showMaps, setShowMaps] = usePersistedState('ui-show-maps', false);
   const [showDraw, setShowDraw] = usePersistedState('ui-show-draw', true);
   const [showManual, setShowManual] = usePersistedState('ui-show-manual', false);
+  const [showCInput, setShowCInput] = usePersistedState('ui-show-c-input', false);
   const [strictWalls, setStrictWalls] = usePersistedState('ui-strict-walls', false);
   const [gridSize, setGridSize] = usePersistedState('ui-grid-size', DEFAULT_GRID_SIZE);
 
-  // DnD стейт — живёт здесь, т.к. DndContext тоже здесь
   const [activeItem, setActiveItem] = useState<ProgramItem | null>(null);
   const [isOverContainer, setIsOverContainer] = useState(false);
+
+  const [cCode, setCCode] = useState('');
+  const [isParsing, setIsParsing] = useState(false);
+  const [parseError, setParseError] = useState('');
+  const [modelUsed, setModelUsed] = useState('');
 
   const {
     start,
@@ -112,17 +115,55 @@ const App: React.FC = () => {
   } = useProgram();
   const { maps, saveMap, deleteMap, importMap, renameMap, importLearningMaps } = useMaps();
 
-  // ── DnD sensors ──────────────────────────────────────────────────────────
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
-
-  // Держим актуальный program в рефе для использования в замыканиях dnd handlers
   const programRef = useRef(program);
   programRef.current = program;
 
+  // ── Парсинг C-кода ───────────────────────────────────────────────────────
+  type CacheEntry = { items: ProgramItem[]; model: string } | { error: string; model: string };
+  const cache = useRef(new Map<string, CacheEntry>());
+  const handleParseCode = async () => {
+    const cCodeTrimmed = cCode.trim();
+    if (!cCodeTrimmed) return;
+    if (cache.current.has(cCodeTrimmed)) {
+      const cached = cache.current.get(cCodeTrimmed)!;
+      if ('model' in cached) setModelUsed(cached.model);
+      if ('error' in cached) setParseError(cached.error);
+      else loadProgram(cached.items);
+
+      return;
+    }
+    setIsParsing(true);
+    setParseError('');
+    clearProgram();
+    setModelUsed('');
+
+    try {
+      const res = await fetch('/api/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: cCodeTrimmed }),
+      });
+      const data = (await res.json()) as CacheEntry;
+
+      if ('model' in data) {
+        cache.current.set(cCodeTrimmed, data);
+        setModelUsed(data.model);
+      }
+
+      if ('error' in data) setParseError(data.error);
+      else loadProgram(data.items);
+    } catch {
+      setParseError('Ошибка соединения с сервером');
+    } finally {
+      setIsParsing(false);
+    }
+  };
+
+  // ── DnD handlers ─────────────────────────────────────────────────────────
   const handleDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current;
     if (data?.source === 'controls') {
-      // Preview для команды из Controls
       setActiveItem({ id: '__preview__', type: 'command', cmd: data.cmd });
       return;
     }
@@ -132,7 +173,6 @@ const App: React.FC = () => {
 
   const handleDragOver = (e: any) => {
     const overId = String(e.over?.id ?? '');
-    // Скрываем ghost только над вложенными контейнерами (не root)
     const isNested = overId.startsWith('container:') && overId !== 'container:root';
     setIsOverContainer(isNested);
   };
@@ -146,10 +186,8 @@ const App: React.FC = () => {
     const overId = String(over.id);
     const prog = programRef.current;
 
-    // ── Drag из Controls (новый элемент) ───────────────────────────────
     if (data?.source === 'controls') {
       const newItem: ProgramItem = { id: genId(), type: 'command', cmd: data.cmd };
-
       if (overId.startsWith('container:')) {
         const inner = overId.slice('container:'.length);
         if (inner === 'root') {
@@ -166,7 +204,6 @@ const App: React.FC = () => {
           insertNewItem(newItem, containerPath, container.length);
         }
       } else {
-        // Дропнули на элемент — вставить перед ним
         const containerPath = findContainerPath(prog, overId);
         if (!containerPath) return;
         const container = getContainerByPath(prog, containerPath);
@@ -176,7 +213,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // ── Перемещение внутри программы ───────────────────────────────────
     if (active.id === over.id) return;
     const activeId = String(active.id);
 
@@ -205,7 +241,6 @@ const App: React.FC = () => {
     const prog = programRef.current;
     const pointerCollisions: Collision[] = pointerWithin(args);
 
-    // 1. Точное попадание на команду
     const leafHit = pointerCollisions.find((c: Collision) => {
       const id = String(c.id);
       if (id.startsWith('container:')) return false;
@@ -213,7 +248,6 @@ const App: React.FC = () => {
     });
     if (leafHit) return [leafHit];
 
-    // 2. Самый глубокий вложенный контейнер
     const deepContainerHit = pointerCollisions
       .filter((c: Collision) => {
         const id = String(c.id);
@@ -225,7 +259,6 @@ const App: React.FC = () => {
       )[0];
     if (deepContainerHit) return [deepContainerHit];
 
-    // 3. closestCenter для позиционирования между блоками (решает проблему краёв loop)
     const centerCollisions: Collision[] = closestCenter(args);
     if (centerCollisions.length > 0) {
       const filtered = centerCollisions.filter((c: Collision) => {
@@ -361,48 +394,58 @@ const App: React.FC = () => {
           <div
             style={{
               display: 'flex',
-              gap: 12,
-              flexWrap: 'wrap',
-              justifyContent: 'center',
+              flexDirection: 'column',
+              gap: 6,
               alignItems: 'center',
             }}
           >
-            {checkbox('код', showCode, handleShowCode)}
-            {checkbox('перевод на C', showCTranslation, handleShowCTranslation)}
-            {checkbox('карты', showMaps, setShowMaps)}
-            {checkbox('рисование', showDraw, handleShowDraw)}
-            {checkbox('ручное управление', showManual, handleShowManual)}
-            {checkbox('столкновения со стеной', strictWalls, setStrictWalls)}
-            <label
+            <div
               style={{
                 display: 'flex',
+                gap: 12,
+                flexWrap: 'wrap',
+                justifyContent: 'center',
                 alignItems: 'center',
-                gap: 5,
-                fontSize: 11,
-                color: '#6b5344',
-                fontFamily: 'monospace',
               }}
             >
-              сетка
-              <input
-                type="number"
-                value={gridSize}
-                min={MIN_GRID_SIZE}
-                max={MAX_GRID_SIZE}
-                onChange={e => handleGridSizeChange(e.target.value)}
+              {checkbox('код', showCode, handleShowCode)}
+              {checkbox('ввод C-кода', showCInput, setShowCInput)}
+              {checkbox('перевод на C', showCTranslation, handleShowCTranslation)}
+              {checkbox('карты', showMaps, setShowMaps)}
+              {checkbox('рисование', showDraw, handleShowDraw)}
+              {checkbox('ручное управление', showManual, handleShowManual)}
+              {checkbox('столкновения со стеной', strictWalls, setStrictWalls)}
+              <label
                 style={{
-                  width: 40,
-                  padding: '2px 4px',
-                  border: '1px solid #b0a090',
-                  borderRadius: 3,
-                  background: '#fdfaf4',
-                  fontFamily: 'monospace',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
                   fontSize: 11,
-                  color: '#2a2a2a',
-                  textAlign: 'center',
+                  color: '#6b5344',
+                  fontFamily: 'monospace',
                 }}
-              />
-            </label>
+              >
+                сетка
+                <input
+                  type="number"
+                  value={gridSize}
+                  min={MIN_GRID_SIZE}
+                  max={MAX_GRID_SIZE}
+                  onChange={e => handleGridSizeChange(e.target.value)}
+                  style={{
+                    width: 40,
+                    padding: '2px 4px',
+                    border: '1px solid #b0a090',
+                    borderRadius: 3,
+                    background: '#fdfaf4',
+                    fontFamily: 'monospace',
+                    fontSize: 11,
+                    color: '#2a2a2a',
+                    textAlign: 'center',
+                  }}
+                />
+              </label>
+            </div>
           </div>
 
           {/* Режим рисования */}
@@ -450,7 +493,7 @@ const App: React.FC = () => {
 
           {showCode && (
             <Controls
-              isRunning={isRunning}
+              isRunning={isRunning || isParsing}
               isInLoop={isInLoop}
               isInIf={isInIf}
               canElse={canElse}
@@ -487,7 +530,7 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {showCode && (
+          {(showCode || showCInput) && (
             <ProgramPanel
               program={program}
               editStack={editStack as any}
@@ -498,6 +541,13 @@ const App: React.FC = () => {
               onCancelBlock={cancelBlock}
               activeItem={activeItem}
               isOverContainer={isOverContainer}
+              showCInput={showCInput}
+              cCode={cCode}
+              onCCodeChange={setCCode}
+              onParseCode={handleParseCode}
+              isParsing={isParsing}
+              parseError={parseError}
+              modelUsed={modelUsed}
             />
           )}
 
@@ -505,7 +555,6 @@ const App: React.FC = () => {
             <div style={{ fontSize: 15, fontWeight: 700, color: '#2a9d8f' }}>{message}</div>
           )}
 
-          {/* Подсказка + github внизу */}
           <div
             style={{
               fontSize: 10,
