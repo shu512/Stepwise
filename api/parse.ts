@@ -13,6 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (code.length > 2000) {
     return res.status(400).json({ error: 'Код слишком длинный (макс. 2000 символов)' });
   }
+  const escapedCode = '```\n' + code + '\n```';
 
   const models = [process.env.OPENROUTER_MODEL, ...FREE_MODELS]
     .filter(Boolean)
@@ -37,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         models,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: code },
+          { role: 'user', content: escapedCode },
         ],
       }),
     });

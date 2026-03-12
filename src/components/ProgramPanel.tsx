@@ -1,5 +1,6 @@
 import { DragOverlay } from '@dnd-kit/core';
 import React from 'react';
+import { CodeEditor } from './CodeEditor';
 import { LOOP_COLORS } from '../constants';
 import type { Condition, ProgramItem } from '../types';
 import { countSteps } from '../utils/program';
@@ -144,36 +145,11 @@ export const ProgramPanel: React.FC<Props> = ({
           <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
             ВВОД C-КОДА {modelUsed && <span style={{ color: '#b0a090' }}>· {modelUsed}</span>}
           </div>
-          <textarea
-            disabled={isParsing}
+          <CodeEditor
             value={cCode}
-            onChange={e => onCCodeChange(e.target.value)}
-            onKeyDown={e => {
-              // Ctrl+Enter — запустить парсинг
-              if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                onParseCode();
-              }
-            }}
-            placeholder={'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n}'}
-            spellCheck={false}
-            style={{
-              width: '100%',
-              minHeight: 120,
-              resize: 'vertical',
-              padding: '6px 8px',
-              border: '1px solid #c0b0a0',
-              borderRadius: 3,
-              background: '#1e1e1e',
-              color: '#d4d4d4',
-              fontFamily: 'monospace',
-              fontSize: 12,
-              lineHeight: 1.5,
-              outline: 'none',
-              boxSizing: 'border-box',
-              opacity: isParsing ? 0.5 : 1,
-              cursor: isParsing ? 'not-allowed' : 'text',
-            }}
+            onChange={onCCodeChange}
+            onSubmit={onParseCode}
+            disabled={isParsing}
           />
           <div
             style={{
