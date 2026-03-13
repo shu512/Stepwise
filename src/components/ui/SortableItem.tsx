@@ -1,4 +1,3 @@
-import React from 'react';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 
@@ -26,7 +25,7 @@ export const SortableItem: React.FC<Props> = ({ id, children, disabled }) => {
         cursor: disabled ? 'default' : 'grab',
         display: 'inline-flex',
         position: 'relative',
-        zIndex: isDragging ? 0 : 'auto', // dragging элемент уходит под остальные
+        zIndex: isDragging ? 0 : 'auto', // dragged item goes below others
       }}
     >
       {children}

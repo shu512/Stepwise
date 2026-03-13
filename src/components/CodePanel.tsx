@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { COLOR_BG, COLOR_BG_LIGHT, COLOR_LABEL, COLOR_TEXT } from '../constants';
 import type { ProgramItem } from '../types';
 import { generateCode, LANG_LABELS, type Lang } from '../utils/codegen';
 
@@ -19,12 +20,12 @@ export const CodePanel: React.FC<Props> = ({ program, lang }) => {
           padding: '5px 12px',
           border: '1px solid #b0a090',
           borderRadius: 3,
-          background: visible ? '#fdfaf4' : '#f5f0e8',
+          background: visible ? COLOR_BG_LIGHT : COLOR_BG,
           cursor: 'pointer',
           fontFamily: 'monospace',
           fontSize: 12,
           fontWeight: 600,
-          color: '#6b5344',
+          color: COLOR_LABEL,
           width: '100%',
           textAlign: 'left',
           borderBottom: visible ? 'none' : '1px solid #b0a090',
@@ -38,7 +39,7 @@ export const CodePanel: React.FC<Props> = ({ program, lang }) => {
       {visible && (
         <div
           style={{
-            background: '#fdfaf4',
+            background: COLOR_BG_LIGHT,
             border: '1px solid #b0a090',
             borderTop: 'none',
             borderBottomLeftRadius: 3,
@@ -52,7 +53,7 @@ export const CodePanel: React.FC<Props> = ({ program, lang }) => {
               margin: 0,
               fontSize: 12,
               lineHeight: 1.6,
-              color: '#2a2a2a',
+              color: COLOR_TEXT,
               whiteSpace: 'pre',
             }}
           >

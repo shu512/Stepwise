@@ -1,12 +1,11 @@
 import { DragOverlay } from '@dnd-kit/core';
-import React from 'react';
-import { CodeEditor } from './CodeEditor';
-import { LOOP_COLORS } from '../constants';
+import { COLOR_BG_LIGHT, COLOR_BORDER, COLOR_TEXT, LOOP_COLORS } from '../constants';
 import type { Condition, ProgramItem } from '../types';
-import { CommandChip } from './CommandChip';
-import { ProgramDisplay } from './ProgramDisplay';
-import { Spinner } from './Spinner';
 import type { Lang } from '../utils/codegen';
+import { CodeEditor } from './CodeEditor';
+import { CommandChip } from './ui/CommandChip';
+import { ProgramDisplay } from './ProgramDisplay';
+import { Spinner } from './ui/Spinner';
 
 type StackEntry = {
   frame: { kind: string; condition?: Condition; then?: ProgramItem[] };
@@ -24,7 +23,7 @@ type Props = {
   onCancelBlock: () => void;
   activeItem: ProgramItem | null;
   isOverContainer: boolean;
-  showCodeInput: boolean;
+  showEditor: boolean;
   code: string;
   onCodeChange: (v: string) => void;
   onParseCode: () => void;
@@ -49,7 +48,7 @@ export const ProgramPanel: React.FC<Props> = ({
   onCancelBlock,
   activeItem,
   isOverContainer,
-  showCodeInput,
+  showEditor,
   code,
   onCodeChange,
   onParseCode,
@@ -64,14 +63,13 @@ export const ProgramPanel: React.FC<Props> = ({
         maxWidth: 500,
         border: '1px solid #b0a090',
         borderRadius: 3,
-        background: '#fdfaf4',
+        background: COLOR_BG_LIGHT,
         fontFamily: 'monospace',
         overflow: 'hidden',
       }}
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
 
-      {/* Блоки программы */}
       <div style={{ padding: 10, minHeight: 56 }}>
         <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
           ПРОГРАММА
@@ -90,7 +88,7 @@ export const ProgramPanel: React.FC<Props> = ({
           <span style={{ color: '#c0b0a0', fontSize: 12 }}>пусто</span>
         )}
 
-        {/* Незакрытые контексты */}
+        {/* Unclosed block contexts */}
         {editStack.slice(1).map((entry, i) => {
           const kind = entry.frame.kind;
           const isLoop = kind === 'loop';
@@ -99,7 +97,7 @@ export const ProgramPanel: React.FC<Props> = ({
             : { bg: '#fff8e8', border: '#c0a030' };
           const label = isLoop
             ? `тело цикла — уровень ${i + 1}`
-            : `if ${(entry.frame as any).condition} → ${IF_FRAME_LABELS[kind] ?? kind}`;
+            : `if ${entry.frame.condition} → ${IF_FRAME_LABELS[kind] ?? kind}`;
 
           return (
             <div
@@ -136,10 +134,10 @@ export const ProgramPanel: React.FC<Props> = ({
         })}
       </div>
 
-      {showCodeInput && (
+      {showEditor && (
         <div style={{ borderTop: '1px solid #e0d8cc', padding: 10, background: '#f7f3eb' }}>
           <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
-            ВВОД КОДА {modelUsed && <span style={{ color: '#b0a090' }}>· {modelUsed}</span>}
+            ВВОД КОДА {modelUsed && <span style={{ color: COLOR_BORDER }}>· {modelUsed}</span>}
           </div>
           <CodeEditor
             value={code}
@@ -160,7 +158,7 @@ export const ProgramPanel: React.FC<Props> = ({
             {parseError ? (
               <span style={{ fontSize: 11, color: '#c0392b', flex: 1 }}>⚠ {parseError}</span>
             ) : (
-              <span style={{ fontSize: 10, color: '#b0a090' }}>Ctrl+Enter — выполнить</span>
+              <span style={{ fontSize: 10, color: COLOR_BORDER }}>Ctrl+Enter — выполнить</span>
             )}
             <button
               onClick={onParseCode}
@@ -170,7 +168,7 @@ export const ProgramPanel: React.FC<Props> = ({
                 border: '1px solid #4caf50',
                 borderRadius: 3,
                 background: isParsing || !code.trim() ? '#e8e0d4' : '#c8e6c9',
-                color: isParsing || !code.trim() ? '#a09080' : '#2a2a2a',
+                color: isParsing || !code.trim() ? '#a09080' : COLOR_TEXT,
                 fontFamily: 'monospace',
                 fontSize: 12,
                 fontWeight: 600,

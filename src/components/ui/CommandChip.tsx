@@ -1,6 +1,5 @@
-import React from 'react';
-import type { CommandKind } from '../types';
-import { CMD_COLOR } from '../constants';
+import { CMD_COLOR } from '../../constants';
+import type { CommandKind } from '../../types';
 
 type Props = {
   cmd: CommandKind;

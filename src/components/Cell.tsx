@@ -1,4 +1,4 @@
-import React from 'react';
+import { CELL_COLORS } from '../constants';
 import type { CellKind } from '../types';
 
 type Props = {
@@ -12,13 +12,13 @@ type Props = {
 const getColor = (type: CellKind) => {
   switch (type) {
     case 'robot':
-      return '#e63946';
+      return CELL_COLORS.robot;
     case 'start':
-      return '#457b9d';
+      return CELL_COLORS.start;
     case 'finish':
-      return '#e9c46a';
+      return CELL_COLORS.finish;
     case 'wall':
-      return '#6b5344';
+      return CELL_COLORS.wall;
     default:
       return 'transparent';
   }

@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import type { ProgramItem } from '../types';
 import { LOOP_COLORS } from '../constants';
-import { CommandChip } from './CommandChip';
-import { SortableItem } from './SortableItem';
-import { DroppableContainer } from './DroppableContainer';
+import type { ProgramItem } from '../types';
+import { CommandChip } from './ui/CommandChip';
+import { DroppableContainer } from './ui/DroppableContainer';
+import { LoopTimesEditor } from './LoopTimesEditor';
+import { SortableItem } from './ui/SortableItem';
 
 const IF_COLORS = [
   { bg: '#fff8e8', border: '#c0a030' },
@@ -25,35 +25,18 @@ export const ProgramDisplay: React.FC<Props> = ({
   items,
   depth = 0,
   containerPath = [],
+  blockId,
+  branchKey,
   onRemove,
   onUpdateTimes,
   disabled = false,
-  blockId,
-  branchKey,
 }) => {
   const loopPalette = LOOP_COLORS[depth % LOOP_COLORS.length];
   const ifPalette = IF_COLORS[depth % IF_COLORS.length];
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingValue, setEditingValue] = useState('');
-
-  const containerId = containerPath.join('-') || 'root';
-
-  const startEditTimes = (id: string, currentTimes: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setEditingId(id);
-    setEditingValue(String(currentTimes));
-  };
-
-  const commitEditTimes = (itemPath: number[]) => {
-    const n = parseInt(editingValue, 10);
-    if (!isNaN(n) && n >= 1) onUpdateTimes(itemPath, n);
-    setEditingId(null);
-  };
-
   return (
     <DroppableContainer
-      id={containerId}
+      id={containerPath.join('-') || 'root'}
       items={items}
       disabled={disabled}
       blockId={blockId}
@@ -74,7 +57,6 @@ export const ProgramDisplay: React.FC<Props> = ({
         }
 
         if (item.type === 'loop') {
-          const isEditingTimes = editingId === item.id;
           return (
             <SortableItem key={item.id} id={item.id} disabled={disabled}>
               <div
@@ -102,54 +84,17 @@ export const ProgramDisplay: React.FC<Props> = ({
                   >
                     repeat ×
                   </span>
-                  {isEditingTimes ? (
-                    <input
-                      autoFocus
-                      value={editingValue}
-                      onChange={e => setEditingValue(e.target.value)}
-                      onClick={e => e.stopPropagation()}
-                      onBlur={() => commitEditTimes(itemPath)}
-                      onKeyDown={e => {
-                        e.stopPropagation();
-                        if (e.key === 'Enter') commitEditTimes(itemPath);
-                        if (e.key === 'Escape') setEditingId(null);
-                      }}
-                      style={{
-                        width: 36,
-                        padding: '1px 4px',
-                        border: `1px solid ${loopPalette.border}`,
-                        borderRadius: 3,
-                        fontFamily: 'monospace',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: loopPalette.border,
-                        background: '#fdfaf4',
-                        outline: 'none',
-                      }}
-                    />
-                  ) : (
-                    <span
-                      onDoubleClick={e => startEditTimes(item.id, item.times, e)}
-                      onClick={e => e.stopPropagation()}
-                      title="двойной клик — изменить"
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: loopPalette.border,
-                        fontFamily: 'monospace',
-                        cursor: 'text',
-                        borderBottom: `1px dashed ${loopPalette.border}`,
-                      }}
-                    >
-                      {item.times}
-                    </span>
-                  )}
+                  <LoopTimesEditor
+                    times={item.times}
+                    color={loopPalette.border}
+                    onCommit={times => onUpdateTimes(itemPath, times)}
+                  />
                 </div>
                 <div onClick={e => e.stopPropagation()}>
                   <ProgramDisplay
                     items={item.body}
                     depth={depth + 1}
-                    containerPath={[...itemPath]}
+                    containerPath={itemPath}
                     blockId={item.id}
                     branchKey="body"
                     onRemove={onRemove}

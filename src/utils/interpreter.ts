@@ -1,6 +1,5 @@
-import type { ProgramItem, CommandKind, Condition } from '../types';
-import type { Position } from '../types';
-import { isSame } from './program';
+import type { CommandKind, Condition, Position, ProgramItem } from '../types';
+import { isSame } from './grid';
 
 export type RuntimeState = {
   pos: Position;

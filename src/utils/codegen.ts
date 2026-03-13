@@ -1,4 +1,4 @@
-import type { ProgramItem, Condition } from '../types';
+import type { Condition, ProgramItem } from '../types';
 
 export type Lang = 'python' | 'c' | 'cpp' | 'java' | 'csharp' | 'javascript';
 

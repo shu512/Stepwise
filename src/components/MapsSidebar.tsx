@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import type { SavedMap, Position, ProgramItem } from '../types';
+import { useState } from 'react';
+import { COLOR_BG, COLOR_BG_LIGHT, COLOR_BORDER, COLOR_LABEL, COLOR_TEXT } from '../constants';
+import type { Position, ProgramItem, SavedMap } from '../types';
 
 type Props = {
   maps: SavedMap[];
@@ -116,12 +117,12 @@ export const MapsSidebar: React.FC<Props> = ({
     padding: '4px 10px',
     border: '1px solid #b0a090',
     borderRadius: 3,
-    background: '#f5f0e8',
+    background: COLOR_BG,
     cursor: 'pointer',
     fontFamily: 'monospace',
     fontSize: 12,
     fontWeight: 600,
-    color: '#2a2a2a',
+    color: COLOR_TEXT,
     textAlign: 'left',
     ...extra,
   });
@@ -133,8 +134,8 @@ export const MapsSidebar: React.FC<Props> = ({
     borderRadius: 3,
     fontFamily: 'monospace',
     fontSize: 12,
-    background: '#fdfaf4',
-    color: '#2a2a2a',
+    background: COLOR_BG_LIGHT,
+    color: COLOR_TEXT,
     outline: 'none',
   };
 
@@ -147,10 +148,10 @@ export const MapsSidebar: React.FC<Props> = ({
         gap: 8,
         fontFamily: 'monospace',
         fontSize: 12,
-        color: '#2a2a2a',
+        color: COLOR_TEXT,
       }}
     >
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#6b5344', letterSpacing: '0.05em' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: COLOR_LABEL, letterSpacing: '0.05em' }}>
         КАРТЫ
       </div>
 
@@ -176,7 +177,7 @@ export const MapsSidebar: React.FC<Props> = ({
             type="checkbox"
             checked={saveProgram}
             onChange={e => setSaveProgram(e.target.checked)}
-            style={{ accentColor: '#6b5344' }}
+            style={{ accentColor: COLOR_LABEL }}
           />
           С программой
         </label>
@@ -236,7 +237,7 @@ export const MapsSidebar: React.FC<Props> = ({
                 border: '1px solid #b0a090',
                 borderRadius: 3,
                 fontSize: 11,
-                color: '#6b5344',
+                color: COLOR_LABEL,
                 textAlign: 'center',
                 zIndex: 10,
               }}
@@ -257,7 +258,7 @@ export const MapsSidebar: React.FC<Props> = ({
           maxHeight: 400,
         }}
       >
-        {maps.length === 0 && <span style={{ color: '#b0a090', fontSize: 11 }}>пусто</span>}
+        {maps.length === 0 && <span style={{ color: COLOR_BORDER, fontSize: 11 }}>пусто</span>}
         {maps.map(map => (
           <div key={map.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {editingId === map.id ? (
@@ -318,7 +319,7 @@ export const MapsSidebar: React.FC<Props> = ({
               style={btn({
                 padding: '4px 7px',
                 flexShrink: 0,
-                color: copyFeedback === map.id ? '#4caf50' : '#2a2a2a',
+                color: copyFeedback === map.id ? '#4caf50' : COLOR_TEXT,
               })}
               title="Экспортировать"
             >

@@ -1,10 +1,9 @@
-import { useState, useRef } from 'react';
-import type { Position, ProgramItem } from '../types';
-import { STEP_DELAY } from '../constants';
-import { move, isSame } from '../utils/program';
-import { interpret } from '../utils/interpreter';
-import type { RuntimeState } from '../utils/interpreter';
 import confetti from 'canvas-confetti';
+import { useEffect, useRef, useState } from 'react';
+import { STEP_DELAY } from '../constants';
+import type { CommandKind, Position, ProgramItem } from '../types';
+import { isSame, move } from '../utils/grid';
+import { interpret } from '../utils/interpreter';
 
 export const useRobot = (
   wallsRef: React.MutableRefObject<Position[]>,
@@ -14,42 +13,57 @@ export const useRobot = (
   strictWalls: boolean,
 ) => {
   const [robot, setRobot] = useState<Position>(start);
-  const robotRef = useRef<Position>(start);
-
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState('');
   const [isError, setIsError] = useState(false);
 
+  const robotRef = useRef<Position>(start);
   const intervalRef = useRef<number | null>(null);
   const generatorRef = useRef<Generator<string> | null>(null);
 
-  const getState = (): RuntimeState => ({
-    pos: robotRef.current,
-    start,
-    finish,
-    walls: wallsRef.current,
-    gridSize,
-  });
+  // Using refs for start/finish/gridSize/strictWalls so the interval closure
+  // always reads the latest values without needing to restart.
+  const startRef = useRef(start);
+  const finishRef = useRef(finish);
+  const gridSizeRef = useRef(gridSize);
+  const strictWallsRef = useRef(strictWalls);
+  useEffect(() => {
+    startRef.current = start;
+  }, [start]);
+  useEffect(() => {
+    finishRef.current = finish;
+  }, [finish]);
+  useEffect(() => {
+    gridSizeRef.current = gridSize;
+  }, [gridSize]);
+  useEffect(() => {
+    strictWallsRef.current = strictWalls;
+  }, [strictWalls]);
 
   const runProgram = (program: ProgramItem[]) => {
     if (program.length === 0) return;
 
-    generatorRef.current = interpret(program, getState);
-
+    robotRef.current = startRef.current;
+    setRobot(startRef.current);
     setMessage('');
     setIsError(false);
-    robotRef.current = start;
-    setRobot(start);
     setIsRunning(true);
 
+    generatorRef.current = interpret(program, () => ({
+      pos: robotRef.current,
+      start: startRef.current,
+      finish: finishRef.current,
+      walls: wallsRef.current,
+      gridSize: gridSizeRef.current,
+    }));
+
     intervalRef.current = window.setInterval(() => {
-      const gen = generatorRef.current!;
-      const result = gen.next();
+      const result = generatorRef.current!.next();
 
       if (result.done) {
         clearInterval(intervalRef.current!);
         setIsRunning(false);
-        if (isSame(robotRef.current, finish)) {
+        if (isSame(robotRef.current, finishRef.current)) {
           setMessage('🎉 Достиг финиша!');
           confetti({
             particleCount: 120,
@@ -63,10 +77,10 @@ export const useRobot = (
 
       const next = move(
         robotRef.current,
-        result.value as any,
+        result.value as CommandKind,
         wallsRef.current,
-        gridSize,
-        strictWalls,
+        gridSizeRef.current,
+        strictWallsRef.current,
       );
 
       if (next === null) {

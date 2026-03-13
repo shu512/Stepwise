@@ -18,8 +18,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resolvedLang: Lang =
     typeof lang === 'string' && SUPPORTED_LANGS.includes(lang as Lang) ? (lang as Lang) : 'c';
 
-  console.log(lang, resolvedLang);
-
   const escapedCode = '```\n' + code + '\n```';
   const systemPrompt = buildSystemPrompt(resolvedLang);
 

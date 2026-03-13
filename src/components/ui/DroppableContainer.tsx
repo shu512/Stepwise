@@ -1,7 +1,6 @@
-import React from 'react';
 import { useDroppable } from '@dnd-kit/core';
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable';
-import type { ProgramItem } from '../types';
+import type { ProgramItem } from '../../types';
 
 type Props = {
   id: string;
@@ -9,8 +8,8 @@ type Props = {
   children: React.ReactNode;
   disabled?: boolean;
   isRoot?: boolean;
-  blockId?: string; // item.id блока-владельца (loop/if)
-  branchKey?: 'body' | 'then' | 'else'; // ветка внутри блока
+  blockId?: string; // owner block's item.id (loop/if)
+  branchKey?: 'body' | 'then' | 'else'; // branch within the block
 };
 
 export const DroppableContainer: React.FC<Props> = ({
@@ -22,7 +21,6 @@ export const DroppableContainer: React.FC<Props> = ({
   blockId,
   branchKey,
 }) => {
-  // Если есть blockId — используем его как основу id контейнера
   const containerId = blockId
     ? `container:${blockId}${branchKey ? `:${branchKey}` : ''}`
     : `container:${id}`;

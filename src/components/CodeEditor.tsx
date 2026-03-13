@@ -1,13 +1,12 @@
-import { useEffect, useRef } from 'react';
-import React from 'react';
-import { EditorView, basicSetup } from 'codemirror';
-import { keymap, placeholder } from '@codemirror/view';
-import { Prec, Compartment, EditorState } from '@codemirror/state';
-import { cpp } from '@codemirror/lang-cpp';
-import { python } from '@codemirror/lang-python';
-import { javascript } from '@codemirror/lang-javascript';
-import { oneDark } from '@codemirror/theme-one-dark';
 import { indentWithTab } from '@codemirror/commands';
+import { cpp } from '@codemirror/lang-cpp';
+import { javascript } from '@codemirror/lang-javascript';
+import { python } from '@codemirror/lang-python';
+import { Compartment, EditorState, Prec } from '@codemirror/state';
+import { oneDark } from '@codemirror/theme-one-dark';
+import { keymap, placeholder } from '@codemirror/view';
+import { EditorView, basicSetup } from 'codemirror';
+import { useEffect, useRef } from 'react';
 import type { Lang } from '../utils/codegen';
 
 const PLACEHOLDERS: Record<Lang, string> = {

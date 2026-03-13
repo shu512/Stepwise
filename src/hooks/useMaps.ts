@@ -4,7 +4,7 @@ import type { Position, ProgramItem, SavedMap } from '../types';
 
 const STORAGE_KEY = 'robot-programmer-maps';
 
-const loadFromStorage = (): SavedMap[] => {
+const readMaps = (): SavedMap[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
@@ -13,12 +13,17 @@ const loadFromStorage = (): SavedMap[] => {
   }
 };
 
-const saveToStorage = (maps: SavedMap[]) => {
+const writeMaps = (maps: SavedMap[]) => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(maps));
 };
 
 export const useMaps = () => {
-  const [maps, setMaps] = useState<SavedMap[]>(loadFromStorage);
+  const [maps, setMaps] = useState<SavedMap[]>(readMaps);
+
+  const update = (next: SavedMap[]) => {
+    setMaps(next);
+    writeMaps(next);
+  };
 
   const saveMap = (
     name: string,
@@ -29,46 +34,23 @@ export const useMaps = () => {
     walls: Position[],
     program?: ProgramItem[],
   ) => {
-    const newMap: SavedMap = {
-      id: Date.now().toString(),
-      name,
-      gridSize,
-      strictWalls,
-      start,
-      finish,
-      walls,
-      program,
-    };
-    const updated = [newMap, ...maps];
-    setMaps(updated);
-    saveToStorage(updated);
+    update([
+      { id: Date.now().toString(), name, gridSize, strictWalls, start, finish, walls, program },
+      ...maps,
+    ]);
   };
 
-  const deleteMap = (id: string) => {
-    const updated = maps.filter(m => m.id !== id);
-    setMaps(updated);
-    saveToStorage(updated);
-  };
+  const deleteMap = (id: string) => update(maps.filter(m => m.id !== id));
 
-  const importMap = (map: SavedMap) => {
-    const updated = [map, ...maps];
-    setMaps(updated);
-    saveToStorage(updated);
-  };
+  const importMap = (map: SavedMap) => update([map, ...maps]);
 
-  const renameMap = (id: string, name: string) => {
-    const updated = maps.map(m => (m.id === id ? { ...m, name } : m));
-    setMaps(updated);
-    saveToStorage(updated);
-  };
+  const renameMap = (id: string, name: string) =>
+    update(maps.map(m => (m.id === id ? { ...m, name } : m)));
 
-  const importBulk = (newMaps: SavedMap[]) => {
+  const importBulk = (incoming: SavedMap[]): number => {
     const existingIds = new Set(maps.map(m => m.id));
-    const toAdd = newMaps.filter(m => !existingIds.has(m.id));
-    if (toAdd.length === 0) return 0;
-    const updated = [...toAdd, ...maps];
-    setMaps(updated);
-    saveToStorage(updated);
+    const toAdd = incoming.filter(m => !existingIds.has(m.id));
+    if (toAdd.length > 0) update([...toAdd, ...maps]);
     return toAdd.length;
   };
 

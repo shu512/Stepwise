@@ -1,7 +1,6 @@
-import React from 'react';
+import type { CellKind, Position } from '../types';
+import { isSame } from '../utils/grid';
 import { Cell } from './Cell';
-import type { Position, CellKind } from '../types';
-import { isSame } from '../utils/program';
 
 type Props = {
   gridSize: number;
@@ -30,14 +29,13 @@ export const Grid: React.FC<Props> = ({
 
   for (let row = 0; row < gridSize; row++) {
     for (let col = 0; col < gridSize; col++) {
-      const current = { row, col };
-      let type: CellKind = 'empty';
-      if (isSame(robot, current) && isRunning) type = 'robot';
-      else if (isSame(start, current)) type = 'start';
-      else if (isSame(finish, current)) type = 'finish';
-      else if (walls.some(w => isSame(w, current))) type = 'wall';
+      const pos = { row, col };
 
-      const isRobotCell = isSame(robot, current) && isRunning;
+      let type: CellKind = 'empty';
+      if (isSame(robot, pos) && isRunning) type = 'robot';
+      else if (isSame(start, pos)) type = 'start';
+      else if (isSame(finish, pos)) type = 'finish';
+      else if (walls.some(w => isSame(w, pos))) type = 'wall';
 
       cells.push(
         <Cell
@@ -45,7 +43,7 @@ export const Grid: React.FC<Props> = ({
           type={type}
           isRunning={isRunning}
           isManual={isManual}
-          isError={isRobotCell && isError}
+          isError={isSame(robot, pos) && isRunning && isError}
           onClick={() => onCellClick(row, col)}
         />,
       );
