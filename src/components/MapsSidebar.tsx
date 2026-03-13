@@ -255,7 +255,7 @@ export const MapsSidebar: React.FC<Props> = ({
           gap: 4,
           overflowY: 'auto',
           overflowX: 'hidden',
-          maxHeight: 400,
+          maxHeight: 'calc(100vh - 187px)', // app padding (24) + sidebar padding (8) + sidebar header (13) + sidebar actions (126) + sidebar gaps (16)
         }}
       >
         {maps.length === 0 && <span style={{ color: COLOR_BORDER, fontSize: 11 }}>пусто</span>}

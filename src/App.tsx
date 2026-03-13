@@ -111,13 +111,14 @@ const App: React.FC = () => {
     >
       <div
         style={{
-          minHeight: '100vh',
+          minHeight: 'calc(100vh - 24px)',
           background: COLOR_BG,
           display: 'flex',
           alignItems: 'flex-start',
           justifyContent: 'center',
           gap: 24,
           padding: 24,
+          paddingBottom: 0,
           fontFamily: 'monospace',
           color: COLOR_TEXT,
         }}
