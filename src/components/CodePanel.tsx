@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import type { ProgramItem } from '../types';
-import { generateC } from '../utils/codegen';
+import { generateCode, LANG_LABELS, type Lang } from '../utils/codegen';
 
 type Props = {
   program: ProgramItem[];
+  lang: Lang;
 };
 
-export const CodePanel: React.FC<Props> = ({ program }) => {
+export const CodePanel: React.FC<Props> = ({ program, lang }) => {
   const [visible, setVisible] = useState(false);
-  const code = generateC(program);
+  const code = generateCode(program, lang);
 
   return (
     <div style={{ width: '100%', fontFamily: 'monospace' }}>
@@ -31,7 +32,7 @@ export const CodePanel: React.FC<Props> = ({ program }) => {
           borderBottomRightRadius: visible ? 0 : 3,
         }}
       >
-        {visible ? '▾' : '▸'} посмотреть как это выглядит на C
+        {visible ? '▾' : '▸'} посмотреть как это выглядит на {LANG_LABELS[lang]}
       </button>
 
       {visible && (

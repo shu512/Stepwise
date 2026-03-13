@@ -3,10 +3,10 @@ import React from 'react';
 import { CodeEditor } from './CodeEditor';
 import { LOOP_COLORS } from '../constants';
 import type { Condition, ProgramItem } from '../types';
-import { countSteps } from '../utils/program';
 import { CommandChip } from './CommandChip';
 import { ProgramDisplay } from './ProgramDisplay';
 import { Spinner } from './Spinner';
+import type { Lang } from '../utils/codegen';
 
 type StackEntry = {
   frame: { kind: string; condition?: Condition; then?: ProgramItem[] };
@@ -17,15 +17,16 @@ type Props = {
   program: ProgramItem[];
   editStack: StackEntry[];
   isRunning: boolean;
+  lang: Lang;
   onRemove: (path: number[]) => void;
   onRemoveFromContext: (path: number[]) => void;
   onUpdateTimes: (path: number[], times: number) => void;
   onCancelBlock: () => void;
   activeItem: ProgramItem | null;
   isOverContainer: boolean;
-  showCInput: boolean;
-  cCode: string;
-  onCCodeChange: (v: string) => void;
+  showCodeInput: boolean;
+  code: string;
+  onCodeChange: (v: string) => void;
   onParseCode: () => void;
   isParsing: boolean;
   parseError: string;
@@ -41,15 +42,16 @@ export const ProgramPanel: React.FC<Props> = ({
   program,
   editStack,
   isRunning,
+  lang,
   onRemove,
   onRemoveFromContext,
   onUpdateTimes,
   onCancelBlock,
   activeItem,
   isOverContainer,
-  showCInput,
-  cCode,
-  onCCodeChange,
+  showCodeInput,
+  code,
+  onCodeChange,
   onParseCode,
   isParsing,
   parseError,
@@ -68,6 +70,7 @@ export const ProgramPanel: React.FC<Props> = ({
       }}
     >
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+
       {/* Блоки программы */}
       <div style={{ padding: 10, minHeight: 56 }}>
         <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
@@ -133,21 +136,15 @@ export const ProgramPanel: React.FC<Props> = ({
         })}
       </div>
 
-      {/* C-input секция */}
-      {showCInput && (
-        <div
-          style={{
-            borderTop: '1px solid #e0d8cc',
-            padding: 10,
-            background: '#f7f3eb',
-          }}
-        >
+      {showCodeInput && (
+        <div style={{ borderTop: '1px solid #e0d8cc', padding: 10, background: '#f7f3eb' }}>
           <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
-            ВВОД C-КОДА {modelUsed && <span style={{ color: '#b0a090' }}>· {modelUsed}</span>}
+            ВВОД КОДА {modelUsed && <span style={{ color: '#b0a090' }}>· {modelUsed}</span>}
           </div>
           <CodeEditor
-            value={cCode}
-            onChange={onCCodeChange}
+            value={code}
+            lang={lang}
+            onChange={onCodeChange}
             onSubmit={onParseCode}
             disabled={isParsing}
           />
@@ -167,18 +164,18 @@ export const ProgramPanel: React.FC<Props> = ({
             )}
             <button
               onClick={onParseCode}
-              disabled={isParsing || !cCode.trim()}
+              disabled={isParsing || !code.trim()}
               style={{
                 padding: '4px 14px',
                 border: '1px solid #4caf50',
                 borderRadius: 3,
-                background: isParsing || !cCode.trim() ? '#e8e0d4' : '#c8e6c9',
-                color: isParsing || !cCode.trim() ? '#a09080' : '#2a2a2a',
+                background: isParsing || !code.trim() ? '#e8e0d4' : '#c8e6c9',
+                color: isParsing || !code.trim() ? '#a09080' : '#2a2a2a',
                 fontFamily: 'monospace',
                 fontSize: 12,
                 fontWeight: 600,
-                cursor: isParsing || !cCode.trim() ? 'not-allowed' : 'pointer',
-                opacity: isParsing || !cCode.trim() ? 0.6 : 1,
+                cursor: isParsing || !code.trim() ? 'not-allowed' : 'pointer',
+                opacity: isParsing || !code.trim() ? 0.6 : 1,
                 whiteSpace: 'nowrap',
               }}
             >

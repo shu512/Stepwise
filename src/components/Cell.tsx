@@ -24,7 +24,7 @@ const getColor = (type: CellKind) => {
   }
 };
 
-export const Cell: React.FC<Props> = ({ type, onClick, isRunning, isManual, isError }) => (
+export const Cell: React.FC<Props> = ({ type, onClick, isRunning, isManual }) => (
   <div
     onClick={onClick}
     style={{

@@ -26,6 +26,7 @@ import type { DrawMode, ProgramItem, SavedMap } from './types';
 import { GitHubIcon } from './components/GitHubIcon';
 import { findContainerPath, findContainerPathById, getContainerByPath } from './utils/program';
 import { genId } from './utils/ids';
+import { LANG_LABELS, type Lang } from './utils/codegen';
 
 function findItemById(items: ProgramItem[], id: string): ProgramItem | null {
   for (const item of items) {
@@ -56,19 +57,23 @@ function containerDepth(id: string, program: ProgramItem[]): number {
 }
 
 const App: React.FC = () => {
-  const [showCode, setShowCode] = usePersistedState('ui-show-code', false);
-  const [showCTranslation, setShowCTranslation] = usePersistedState('ui-show-c-translation', false);
+  const [showBlocks, setShowBlocks] = usePersistedState('ui-show-code', false);
+  const [showCodeGeneration, setShowCodeGeneration] = usePersistedState(
+    'ui-show-c-translation',
+    false,
+  );
   const [showMaps, setShowMaps] = usePersistedState('ui-show-maps', false);
   const [showDraw, setShowDraw] = usePersistedState('ui-show-draw', true);
   const [showManual, setShowManual] = usePersistedState('ui-show-manual', false);
-  const [showCInput, setShowCInput] = usePersistedState('ui-show-c-input', false);
+  const [showCodeInput, setShowCodeInput] = usePersistedState('ui-show-c-input', false);
   const [strictWalls, setStrictWalls] = usePersistedState('ui-strict-walls', false);
   const [gridSize, setGridSize] = usePersistedState('ui-grid-size', DEFAULT_GRID_SIZE);
+  const [lang, setLang] = usePersistedState<Lang>('ui-code-lang', 'python');
 
   const [activeItem, setActiveItem] = useState<ProgramItem | null>(null);
   const [isOverContainer, setIsOverContainer] = useState(false);
 
-  const [cCode, setCCode] = useState('');
+  const [code, setCode] = useState('');
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [modelUsed, setModelUsed] = useState('');
@@ -119,15 +124,16 @@ const App: React.FC = () => {
   const programRef = useRef(program);
   programRef.current = program;
 
-  // ── Парсинг C-кода ───────────────────────────────────────────────────────
   type CacheEntry = { items: ProgramItem[]; model: string } | { error: string; model: string };
   const cache = useRef(new Map<string, CacheEntry>());
+
   const handleParseCode = async () => {
-    const cCodeTrimmed = cCode.trim();
-    if (!cCodeTrimmed) return;
-    if (cache.current.has(cCodeTrimmed)) {
+    const codeTrimmed = code.trim();
+    if (!codeTrimmed) return;
+
+    if (cache.current.has(codeTrimmed)) {
       try {
-        const cached = cache.current.get(cCodeTrimmed)!;
+        const cached = cache.current.get(codeTrimmed)!;
         if ('model' in cached) setModelUsed(cached.model);
         if ('error' in cached) setParseError(cached.error);
         else loadProgram(cached.items);
@@ -136,6 +142,7 @@ const App: React.FC = () => {
       }
       return;
     }
+
     setIsParsing(true);
     setParseError('');
     clearProgram();
@@ -145,12 +152,12 @@ const App: React.FC = () => {
       const res = await fetch('/api/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: cCodeTrimmed }),
+        body: JSON.stringify({ code: codeTrimmed, lang }),
       });
       const data = (await res.json()) as CacheEntry;
 
       if ('model' in data) {
-        cache.current.set(cCodeTrimmed, data);
+        cache.current.set(codeTrimmed, data);
         setModelUsed(data.model);
       }
 
@@ -163,15 +170,13 @@ const App: React.FC = () => {
     }
   };
 
-  // ── DnD handlers ─────────────────────────────────────────────────────────
   const handleDragStart = (event: DragStartEvent) => {
     const data = event.active.data.current;
     if (data?.source === 'controls') {
       setActiveItem({ id: '__preview__', type: 'command', cmd: data.cmd });
       return;
     }
-    const id = String(event.active.id);
-    setActiveItem(findItemById(programRef.current, id) ?? null);
+    setActiveItem(findItemById(programRef.current, String(event.active.id)) ?? null);
   };
 
   const handleDragOver = (e: any) => {
@@ -203,8 +208,7 @@ const App: React.FC = () => {
           if (!branchKey || branchKey === 'body') containerPath = blockPath;
           else if (branchKey === 'then') containerPath = [...blockPath, 0];
           else containerPath = [...blockPath, 1];
-          const container = getContainerByPath(prog, containerPath);
-          insertNewItem(newItem, containerPath, container.length);
+          insertNewItem(newItem, containerPath, getContainerByPath(prog, containerPath).length);
         }
       } else {
         const containerPath = findContainerPath(prog, overId);
@@ -246,8 +250,7 @@ const App: React.FC = () => {
 
     const leafHit = pointerCollisions.find((c: Collision) => {
       const id = String(c.id);
-      if (id.startsWith('container:')) return false;
-      return findItemById(prog, id)?.type === 'command';
+      return !id.startsWith('container:') && findItemById(prog, id)?.type === 'command';
     });
     if (leafHit) return [leafHit];
 
@@ -268,14 +271,12 @@ const App: React.FC = () => {
         const id = String(c.id);
         return !id.startsWith('container:') || id === 'container:root';
       });
-      if (filtered.length > 0) return [filtered[0]];
-      return centerCollisions;
+      return filtered.length > 0 ? [filtered[0]] : centerCollisions;
     }
 
     return pointerCollisions.length > 0 ? [pointerCollisions[0]] : [];
   };
 
-  // ── Прочие handlers ──────────────────────────────────────────────────────
   const handleGridSizeChange = (raw: string) => {
     const n = parseInt(raw, 10);
     if (isNaN(n) || n < MIN_GRID_SIZE || n > MAX_GRID_SIZE) return;
@@ -284,34 +285,32 @@ const App: React.FC = () => {
     reset();
   };
 
-  const handleShowCode = (v: boolean) => {
-    setShowCode(v);
+  const handleShowBlocks = (v: boolean) => {
+    setShowBlocks(v);
     if (v) setShowManual(false);
-    else if (!v && !showCTranslation) setShowManual(true);
+    else if (!showCodeGeneration) setShowManual(true);
   };
 
-  const handleShowCTranslation = (v: boolean) => {
-    setShowCTranslation(v);
+  const handleShowCodeGeneration = (v: boolean) => {
+    setShowCodeGeneration(v);
     if (v) setShowManual(false);
-    else if (!showCode && !v) setShowManual(true);
+    else if (!showBlocks) setShowManual(true);
   };
 
   const handleShowDraw = (v: boolean) => {
     setShowDraw(v);
     if (v) setShowManual(false);
-    else if (!showCode && !showCTranslation && !v) setShowManual(true);
+    else if (!showBlocks && !showCodeGeneration) setShowManual(true);
   };
 
   const handleShowManual = (v: boolean) => {
     setShowManual(v);
     if (v) {
-      setShowCode(false);
-      setShowCTranslation(false);
+      setShowBlocks(false);
+      setShowCodeGeneration(false);
       setShowDraw(false);
       reset();
-    } else {
-      setShowDraw(true);
-    }
+    } else setShowDraw(true);
   };
 
   const handleLoadMap = (map: SavedMap) => {
@@ -322,6 +321,8 @@ const App: React.FC = () => {
     if (map.program) loadProgram(map.program);
     reset();
   };
+
+  const showLangSelector = showCodeGeneration || showCodeInput;
 
   const checkbox = (label: string, value: boolean, onChange: (v: boolean) => void) => (
     <label
@@ -386,22 +387,15 @@ const App: React.FC = () => {
           color: '#2a2a2a',
         }}
       >
-        {showCTranslation && (
+        {showCodeGeneration && (
           <div style={{ paddingTop: 38 }}>
-            <CodePanel program={program} />
+            <CodePanel program={program} lang={lang} />
           </div>
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           {/* Чекбоксы + размер сетки */}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 6,
-              alignItems: 'center',
-            }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'center' }}>
             <div
               style={{
                 display: 'flex',
@@ -412,14 +406,50 @@ const App: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {checkbox('Блоки кода', showCode, handleShowCode)}
-                {checkbox('Генерация C', showCTranslation, handleShowCTranslation)}
-                {checkbox('C ➜ Блоки', showCInput, setShowCInput)}
+                {checkbox('Блоки кода', showBlocks, handleShowBlocks)}
+                {checkbox('Генерация кода', showCodeGeneration, handleShowCodeGeneration)}
+                {checkbox('Код ➜ Блоки', showCodeInput, setShowCodeInput)}
               </div>
               {checkbox('Карты', showMaps, setShowMaps)}
               {checkbox('Рисование', showDraw, handleShowDraw)}
               {checkbox('Ручное управление', showManual, handleShowManual)}
               {checkbox('Столкновения со стеной', strictWalls, setStrictWalls)}
+
+              {showLangSelector && (
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    fontSize: 11,
+                    color: '#6b5344',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  Язык
+                  <select
+                    value={lang}
+                    onChange={e => setLang(e.target.value as Lang)}
+                    style={{
+                      padding: '2px 4px',
+                      border: '1px solid #b0a090',
+                      borderRadius: 3,
+                      background: '#fdfaf4',
+                      fontFamily: 'monospace',
+                      fontSize: 11,
+                      color: '#2a2a2a',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {(Object.keys(LANG_LABELS) as Lang[]).map(l => (
+                      <option key={l} value={l}>
+                        {LANG_LABELS[l]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
+
               <label
                 style={{
                   display: 'flex',
@@ -496,7 +526,7 @@ const App: React.FC = () => {
             }}
           />
 
-          {showCode && (
+          {showBlocks && (
             <Controls
               isRunning={isRunning || isParsing}
               isInLoop={isInLoop}
@@ -521,7 +551,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {isEditing && showCode && (
+          {isEditing && showBlocks && (
             <div
               style={{
                 fontSize: 12,
@@ -535,7 +565,7 @@ const App: React.FC = () => {
             </div>
           )}
 
-          {(showCode || showCInput) && (
+          {(showBlocks || showCodeInput) && (
             <ProgramPanel
               program={program}
               editStack={editStack as any}
@@ -546,9 +576,10 @@ const App: React.FC = () => {
               onCancelBlock={cancelBlock}
               activeItem={activeItem}
               isOverContainer={isOverContainer}
-              showCInput={showCInput}
-              cCode={cCode}
-              onCCodeChange={setCCode}
+              showCodeInput={showCodeInput}
+              code={code}
+              onCodeChange={setCode}
+              lang={lang}
               onParseCode={handleParseCode}
               isParsing={isParsing}
               parseError={parseError}

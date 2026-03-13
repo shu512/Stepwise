@@ -1,26 +1,57 @@
 import { useEffect, useRef } from 'react';
+import React from 'react';
 import { EditorView, basicSetup } from 'codemirror';
 import { keymap, placeholder } from '@codemirror/view';
-import { Prec } from '@codemirror/state';
+import { Prec, Compartment, EditorState } from '@codemirror/state';
 import { cpp } from '@codemirror/lang-cpp';
+import { python } from '@codemirror/lang-python';
+import { javascript } from '@codemirror/lang-javascript';
 import { oneDark } from '@codemirror/theme-one-dark';
-import { EditorState, Compartment } from '@codemirror/state';
 import { indentWithTab } from '@codemirror/commands';
+import type { Lang } from '../utils/codegen';
+
+const PLACEHOLDERS: Record<Lang, string> = {
+  python: 'UP()\nfor i in range(3):\n    RIGHT()\n    STOP()',
+  c: 'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
+  cpp: 'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
+  java: 'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
+  csharp: 'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
+  javascript: 'UP();\nfor (let i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
+};
+
+const getLangExtension = (lang: Lang) => {
+  switch (lang) {
+    case 'python':
+      return python();
+    case 'javascript':
+      return javascript();
+    default:
+      return cpp();
+  }
+};
 
 type Props = {
   value: string;
+  lang: Lang;
   onChange: (v: string) => void;
   onSubmit: () => void;
   disabled?: boolean;
 };
 
-const editableCompartment = new Compartment();
-
-export const CodeEditor: React.FC<Props> = ({ value, onChange, onSubmit, disabled = false }) => {
+export const CodeEditor: React.FC<Props> = ({
+  value,
+  lang,
+  onChange,
+  onSubmit,
+  disabled = false,
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onChangeRef = useRef(onChange);
   const onSubmitRef = useRef(onSubmit);
+  const langCompartment = useRef(new Compartment());
+  const editableCompartment = useRef(new Compartment());
+  const placeholderCompartment = useRef(new Compartment());
 
   useEffect(() => {
     onChangeRef.current = onChange;
@@ -37,8 +68,10 @@ export const CodeEditor: React.FC<Props> = ({ value, onChange, onSubmit, disable
         doc: value,
         extensions: [
           basicSetup,
-          cpp(),
           oneDark,
+          langCompartment.current.of(getLangExtension(lang)),
+          placeholderCompartment.current.of(placeholder(PLACEHOLDERS[lang])),
+          editableCompartment.current.of(EditorView.editable.of(!disabled)),
           Prec.highest(
             keymap.of([
               {
@@ -52,13 +85,9 @@ export const CodeEditor: React.FC<Props> = ({ value, onChange, onSubmit, disable
               indentWithTab,
             ]),
           ),
-          placeholder('UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}'),
           EditorView.updateListener.of(update => {
-            if (update.docChanged) {
-              onChangeRef.current(update.state.doc.toString());
-            }
+            if (update.docChanged) onChangeRef.current(update.state.doc.toString());
           }),
-          editableCompartment.of(EditorView.editable.of(!disabled)),
           EditorView.theme({
             '&': { fontSize: '12px', fontFamily: 'monospace' },
             '.cm-scroller': { minHeight: '120px', maxHeight: '300px', overflow: 'auto' },
@@ -74,7 +103,7 @@ export const CodeEditor: React.FC<Props> = ({ value, onChange, onSubmit, disable
       view.destroy();
       viewRef.current = null;
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const view = viewRef.current;
@@ -87,7 +116,16 @@ export const CodeEditor: React.FC<Props> = ({ value, onChange, onSubmit, disable
 
   useEffect(() => {
     viewRef.current?.dispatch({
-      effects: editableCompartment.reconfigure(EditorView.editable.of(!disabled)),
+      effects: [
+        langCompartment.current.reconfigure(getLangExtension(lang)),
+        placeholderCompartment.current.reconfigure(placeholder(PLACEHOLDERS[lang])),
+      ],
+    });
+  }, [lang]);
+
+  useEffect(() => {
+    viewRef.current?.dispatch({
+      effects: editableCompartment.current.reconfigure(EditorView.editable.of(!disabled)),
     });
   }, [disabled]);
 
