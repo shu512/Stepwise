@@ -1,73 +1,88 @@
-# React + TypeScript + Vite
+# Stepwise
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Инструмент для раннего обучения программированию. Ученик управляет роботом на сетке — сначала кнопками, затем блоками кода, затем пишет настоящий C-код.
 
-Currently, two official plugins are available:
+🔗 **[stepwise-ed.vercel.app](https://stepwise-ed.vercel.app)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+![Stepwise screenshot](stepwise.png)
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Как это работает
 
-## Expanding the ESLint configuration
+Робот стоит на сетке и должен добраться до финиша. Ученик составляет программу из команд движения, циклов и условий — и запускает её.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Три режима работы, которые постепенно вводятся в процессе обучения:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+**Блоки кода** — основной режим. Никакого синтаксиса — только логика.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Перевод на C** — панель слева показывает, как текущая программа выглядит на языке C. Включается в середине курса, чтобы ученик видел связь между блоками и реальным кодом.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+**C ➜ Блоки** — ученик пишет C-код в редакторе, нейросеть переводит его в блоки и запускает. Финальный этап курса.
+
+---
+
+## Управление
+
+| Элемент                    | Описание                        |
+| -------------------------- | ------------------------------- |
+| `UP` `DOWN` `LEFT` `RIGHT` | Команды движения                |
+| `LOOP START` / `LOOP END`  | Цикл `repeat ×N`                |
+| `IF` / `ELSE` / `IF END`   | Условный блок                   |
+| `STOP`                     | Остановить выполнение           |
+| `RUN`                      | Запустить программу             |
+| `RESET`                    | Остановить запущенную программу |
+| `CLEAR`                    | Очистить программу              |
+
+Чекбоксы в шапке управляют видимостью панелей — учитель может показывать только то, что нужно на данном этапе.
+
+---
+
+## Карты
+
+Встроенные обучающие карты разбиты на блоки по нарастающей сложности:
+
+| Карты            | Тема                                                       |
+| ---------------- | ---------------------------------------------------------- |
+| 1–3              | Базовые движения                                           |
+| 4–5              | Циклы                                                      |
+| 6–7              | Условия (важно: каждая пара решается **одним** алгоритмом) |
+| 8.1–8.5 «Uahaha» | Сложные условия (все пять — **одним** алгоритмом)          |
+| 9. Змейка BIG    | Большая карта 20×20, сила цикла                            |
+| 10. Maze         | Лабиринт, свободный маршрут                                |
+| 11. Dizzy        | Финальная карта — спираль 20×20                            |
+
+Карты можно сохранять, экспортировать и импортировать. Также можно рисовать собственные карты прямо в интерфейсе.
+
+📖 Подробные советы по проведению занятий — в [lesson_tips.md](lesson_tips.md)
+
+---
+
+## Стек
+
+- React + TypeScript + Vite
+- [@dnd-kit](https://dndkit.com) — drag & drop блоков
+- [CodeMirror 6](https://codemirror.net) — редактор C-кода
+- [OpenRouter](https://openrouter.ai) — перевод C-кода в блоки
+- Vercel — деплой
+
+---
+
+## Локальная разработка
+
+```bash
+pnpm install
+pnpm dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Для работы C ➜ Блоки создай `.env.local`:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```
+OPENROUTER_API_KEY=sk-or-v1-...
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Запуск с API:
+
+```bash
+pnpm d   # dotenv -e .env.local -- vercel dev
 ```

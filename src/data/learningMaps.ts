@@ -2,8 +2,8 @@ import type { SavedMap } from '../types';
 
 export const LEARNING_MAPS: SavedMap[] = [
   {
-    id: '1773237943298',
-    name: '12. Dizzy',
+    id: '11. Dizzy id',
+    name: '11. Dizzy',
     gridSize: 20,
     strictWalls: true,
     start: {
@@ -718,8 +718,8 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1773237278376',
-    name: '11. Maze',
+    id: '10. Maze id',
+    name: '10. Maze',
     gridSize: 20,
     strictWalls: true,
     start: {
@@ -1530,8 +1530,8 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772871397195',
-    name: '10. Змейка BIG',
+    id: '9. Snake BIG id',
+    name: '9. Змейка BIG',
     gridSize: 20,
     strictWalls: true,
     start: {
@@ -2234,87 +2234,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772628218351',
-    name: '9. Anyway',
-    gridSize: 8,
-    strictWalls: true,
-    start: {
-      row: 7,
-      col: 0,
-    },
-    finish: {
-      row: 0,
-      col: 7,
-    },
-    walls: [
-      {
-        row: 0,
-        col: 2,
-      },
-      {
-        row: 1,
-        col: 2,
-      },
-      {
-        row: 2,
-        col: 2,
-      },
-      {
-        row: 2,
-        col: 1,
-      },
-      {
-        row: 4,
-        col: 2,
-      },
-      {
-        row: 4,
-        col: 3,
-      },
-      {
-        row: 4,
-        col: 4,
-      },
-      {
-        row: 3,
-        col: 4,
-      },
-      {
-        row: 2,
-        col: 4,
-      },
-      {
-        row: 6,
-        col: 4,
-      },
-      {
-        row: 6,
-        col: 5,
-      },
-      {
-        row: 6,
-        col: 6,
-      },
-      {
-        row: 5,
-        col: 6,
-      },
-      {
-        row: 4,
-        col: 6,
-      },
-      {
-        row: 2,
-        col: 7,
-      },
-      {
-        row: 0,
-        col: 5,
-      },
-    ],
-  },
-  {
-    id: '1773237668307',
+    id: '8.5. Uahaha id',
     name: '8.5. Uahaha',
     gridSize: 6,
     strictWalls: true,
@@ -2414,7 +2334,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1773236526160',
+    id: '8.4. Uahaha id',
     name: '8.4. Uahaha',
     gridSize: 6,
     strictWalls: true,
@@ -2486,7 +2406,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1773236512740',
+    id: '8.3. Uahaha id',
     name: '8.3. Uahaha',
     gridSize: 6,
     strictWalls: true,
@@ -2546,7 +2466,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1773236499213',
+    id: '8.2. Uahaha id',
     name: '8.2. Uahaha',
     gridSize: 6,
     strictWalls: true,
@@ -2594,7 +2514,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1773236478806',
+    id: '8.1. Uahaha id',
     name: '8.1. Uahaha',
     gridSize: 6,
     strictWalls: true,
@@ -2638,7 +2558,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772871469881',
+    id: '7.2. If + Down id',
     name: '7.2. If + Down',
     gridSize: 6,
     strictWalls: true,
@@ -2674,7 +2594,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772871502756',
+    id: '7.1. If + Down id',
     name: '7.1. If + Down',
     gridSize: 6,
     strictWalls: true,
@@ -2706,7 +2626,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772628009376',
+    id: '6.2. If id',
     name: '6.2. If',
     gridSize: 6,
     strictWalls: true,
@@ -2734,7 +2654,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772627996169',
+    id: '6.1. If id',
     name: '6.1. If',
     gridSize: 6,
     strictWalls: true,
@@ -2762,7 +2682,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772871366583',
+    id: '5. Snake id',
     name: '5. Змейка',
     gridSize: 9,
     strictWalls: false,
@@ -2906,7 +2826,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772628542213',
+    id: '4. Цикл id',
     name: '4. Цикл',
     gridSize: 8,
     strictWalls: false,
@@ -2921,8 +2841,8 @@ export const LEARNING_MAPS: SavedMap[] = [
     walls: [],
   },
   {
-    id: '1772628538856',
-    name: '3. Первая стена',
+    id: '3. Стена id',
+    name: '3. Стена',
     gridSize: 5,
     strictWalls: false,
     start: {
@@ -2949,7 +2869,7 @@ export const LEARNING_MAPS: SavedMap[] = [
     ],
   },
   {
-    id: '1772628534558',
+    id: '2. Уголок id',
     name: '2. Уголок',
     gridSize: 4,
     strictWalls: false,
@@ -2964,8 +2884,8 @@ export const LEARNING_MAPS: SavedMap[] = [
     walls: [],
   },
   {
-    id: '1772628528384',
-    name: '1. Прямой путь',
+    id: '1. Прямая id',
+    name: '1. Прямая',
     gridSize: 4,
     strictWalls: false,
     start: {

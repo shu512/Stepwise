@@ -74,16 +74,9 @@ export const useProgram = () => {
     updateStack([...editStackRef.current, { frame: { kind: 'loop' }, items: [] }]);
   };
 
-  const loopEnd = () => {
+  const loopEnd = (times: number) => {
     const stack = editStackRef.current;
     if (stack.length < 2 || stack[stack.length - 1].frame.kind !== 'loop') return;
-    const rawInput = window.prompt('Сколько раз повторить?', '2');
-    if (rawInput === null) return;
-    const times = parseInt(rawInput, 10);
-    if (isNaN(times) || times < 1) {
-      alert('Введи число ≥ 1');
-      return;
-    }
     const body = currentItems();
     const loop: LoopBlock = { id: genId(), type: 'loop', times, body };
     const parent = stack[stack.length - 2];

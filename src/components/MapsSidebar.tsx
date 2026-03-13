@@ -41,15 +41,22 @@ export const MapsSidebar: React.FC<Props> = ({
   onImportBulk,
 }) => {
   const [saveProgram, setSaveProgram] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveName, setSaveName] = useState('');
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState('');
+  const [bulkFeedback, setBulkFeedback] = useState<string | null>(null);
 
-  const handleSave = () => {
-    const name = window.prompt('Название карты:', `карта ${maps.length + 1}`);
-    if (!name) return;
+  const handleSaveStart = () => {
+    setSaving(true);
+    setSaveName(`карта ${maps.length + 1}`);
+  };
+
+  const handleSaveCommit = () => {
+    if (!saveName.trim()) return;
     onSave(
-      name,
+      saveName.trim(),
       gridSize,
       strictWalls,
       currentStart,
@@ -57,6 +64,13 @@ export const MapsSidebar: React.FC<Props> = ({
       currentWalls,
       saveProgram ? currentProgram : undefined,
     );
+    setSaving(false);
+    setSaveName('');
+  };
+
+  const handleSaveCancel = () => {
+    setSaving(false);
+    setSaveName('');
   };
 
   const handleExport = (map: SavedMap) => {
@@ -79,6 +93,13 @@ export const MapsSidebar: React.FC<Props> = ({
     } catch {
       alert('Не удалось прочитать данные');
     }
+  };
+
+  const handleImportBulk = () => {
+    const count = onImportBulk();
+    const msg = count === 0 ? 'Все карты уже добавлены' : `Добавлено: ${count}`;
+    setBulkFeedback(msg);
+    setTimeout(() => setBulkFeedback(null), 2500);
   };
 
   const startEditing = (map: SavedMap) => {
@@ -104,6 +125,18 @@ export const MapsSidebar: React.FC<Props> = ({
     textAlign: 'left',
     ...extra,
   });
+
+  const inputStyle: React.CSSProperties = {
+    flex: 1,
+    padding: '3px 6px',
+    border: '1px solid #a0522d',
+    borderRadius: 3,
+    fontFamily: 'monospace',
+    fontSize: 12,
+    background: '#fdfaf4',
+    color: '#2a2a2a',
+    outline: 'none',
+  };
 
   return (
     <div
@@ -145,24 +178,73 @@ export const MapsSidebar: React.FC<Props> = ({
             onChange={e => setSaveProgram(e.target.checked)}
             style={{ accentColor: '#6b5344' }}
           />
-          сохранить программу
+          С программой
         </label>
-        <button onClick={handleSave} style={btn({ background: '#c8e6c9', borderColor: '#4caf50' })}>
-          + сохранить карту
-        </button>
+
+        {saving ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <input
+              autoFocus
+              value={saveName}
+              onChange={e => setSaveName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleSaveCommit();
+                if (e.key === 'Escape') handleSaveCancel();
+              }}
+              style={{ ...inputStyle, flex: 'unset' }}
+            />
+            <div style={{ display: 'flex', gap: 4 }}>
+              <button
+                onClick={handleSaveCommit}
+                disabled={!saveName.trim()}
+                style={btn({ flex: 1, background: '#c8e6c9', borderColor: '#4caf50' })}
+              >
+                ✓ Сохранить
+              </button>
+              <button onClick={handleSaveCancel} style={btn({ padding: '4px 8px' })}>
+                ✕
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={handleSaveStart}
+            style={btn({ background: '#c8e6c9', borderColor: '#4caf50' })}
+          >
+            + Сохранить карту {saveProgram ? 'с программой' : 'без программы'}
+          </button>
+        )}
+
         <button onClick={handleImport} style={btn()}>
-          ↓ импортировать
+          ↓ Импортировать
         </button>
-        <button
-          onClick={() => {
-            const count = onImportBulk();
-            if (count === 0) alert('Все карты уже добавлены');
-            else alert(`Добавлено карт: ${count}`);
-          }}
-          style={btn()}
-        >
-          📚 карты для обучения
-        </button>
+
+        <div style={{ position: 'relative' }}>
+          <button onClick={handleImportBulk} style={btn({ width: '100%' })}>
+            📚 Карты для обучения
+          </button>
+          {bulkFeedback && (
+            <div
+              style={{
+                position: 'absolute',
+                top: '100%',
+                left: 0,
+                right: 0,
+                marginTop: 2,
+                padding: '3px 6px',
+                background: '#f0ebe0',
+                border: '1px solid #b0a090',
+                borderRadius: 3,
+                fontSize: 11,
+                color: '#6b5344',
+                textAlign: 'center',
+                zIndex: 10,
+              }}
+            >
+              {bulkFeedback}
+            </div>
+          )}
+        </div>
       </div>
 
       <div
@@ -188,17 +270,7 @@ export const MapsSidebar: React.FC<Props> = ({
                   if (e.key === 'Enter') commitEdit();
                   if (e.key === 'Escape') setEditingId(null);
                 }}
-                style={{
-                  flex: 1,
-                  padding: '3px 6px',
-                  border: '1px solid #a0522d',
-                  borderRadius: 3,
-                  fontFamily: 'monospace',
-                  fontSize: 12,
-                  background: '#fdfaf4',
-                  color: '#2a2a2a',
-                  outline: 'none',
-                }}
+                style={inputStyle}
               />
             ) : (
               <button
@@ -212,7 +284,6 @@ export const MapsSidebar: React.FC<Props> = ({
                 })}
                 title={map.name}
               >
-                {/* program dot */}
                 <span
                   style={{
                     display: 'inline-block',
@@ -224,9 +295,8 @@ export const MapsSidebar: React.FC<Props> = ({
                     flexShrink: 0,
                     verticalAlign: 'middle',
                   }}
-                  title={map.program?.length ? 'с программой' : 'без программы'}
+                  title={map.program?.length ? 'С программой' : 'Без программы'}
                 />
-                {/* strict walls dot */}
                 <span
                   style={{
                     display: 'inline-block',
@@ -238,7 +308,7 @@ export const MapsSidebar: React.FC<Props> = ({
                     flexShrink: 0,
                     verticalAlign: 'middle',
                   }}
-                  title={map.strictWalls ? 'столкновения включены' : 'без столкновений'}
+                  title={map.strictWalls ? 'Столкновения включены' : 'Без столкновений'}
                 />
                 {map.name}
               </button>

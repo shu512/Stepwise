@@ -126,11 +126,14 @@ const App: React.FC = () => {
     const cCodeTrimmed = cCode.trim();
     if (!cCodeTrimmed) return;
     if (cache.current.has(cCodeTrimmed)) {
-      const cached = cache.current.get(cCodeTrimmed)!;
-      if ('model' in cached) setModelUsed(cached.model);
-      if ('error' in cached) setParseError(cached.error);
-      else loadProgram(cached.items);
-
+      try {
+        const cached = cache.current.get(cCodeTrimmed)!;
+        if ('model' in cached) setModelUsed(cached.model);
+        if ('error' in cached) setParseError(cached.error);
+        else loadProgram(cached.items);
+      } catch {
+        setParseError('Ошибка попытки загрузки программы. Обновите страницу и попробуйте снова.');
+      }
       return;
     }
     setIsParsing(true);
@@ -344,9 +347,9 @@ const App: React.FC = () => {
   );
 
   const DRAW_MODES: { mode: DrawMode; label: string; color: string }[] = [
-    { mode: 'wall', label: 'стена', color: '#6b5344' },
-    { mode: 'start', label: 'старт', color: '#457b9d' },
-    { mode: 'finish', label: 'финиш', color: '#2a9d8f' },
+    { mode: 'wall', label: 'Стена', color: '#6b5344' },
+    { mode: 'start', label: 'Старт', color: '#457b9d' },
+    { mode: 'finish', label: 'Финиш', color: '#e9c46a' },
   ];
 
   const btn = (extra?: React.CSSProperties): React.CSSProperties => ({
@@ -405,16 +408,18 @@ const App: React.FC = () => {
                 gap: 12,
                 flexWrap: 'wrap',
                 justifyContent: 'center',
-                alignItems: 'center',
+                alignItems: 'flex-start',
               }}
             >
-              {checkbox('код', showCode, handleShowCode)}
-              {checkbox('ввод C-кода', showCInput, setShowCInput)}
-              {checkbox('перевод на C', showCTranslation, handleShowCTranslation)}
-              {checkbox('карты', showMaps, setShowMaps)}
-              {checkbox('рисование', showDraw, handleShowDraw)}
-              {checkbox('ручное управление', showManual, handleShowManual)}
-              {checkbox('столкновения со стеной', strictWalls, setStrictWalls)}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                {checkbox('Блоки кода', showCode, handleShowCode)}
+                {checkbox('Генерация C', showCTranslation, handleShowCTranslation)}
+                {checkbox('C ➜ Блоки', showCInput, setShowCInput)}
+              </div>
+              {checkbox('Карты', showMaps, setShowMaps)}
+              {checkbox('Рисование', showDraw, handleShowDraw)}
+              {checkbox('Ручное управление', showManual, handleShowManual)}
+              {checkbox('Столкновения со стеной', strictWalls, setStrictWalls)}
               <label
                 style={{
                   display: 'flex',
@@ -425,7 +430,7 @@ const App: React.FC = () => {
                   fontFamily: 'monospace',
                 }}
               >
-                сетка
+                Сетка
                 <input
                   type="number"
                   value={gridSize}
@@ -451,7 +456,7 @@ const App: React.FC = () => {
           {/* Режим рисования */}
           {showDraw && (
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 11, color: '#a09080' }}>рисовать:</span>
+              <span style={{ fontSize: 11, color: '#a09080' }}>Рисовать:</span>
               {DRAW_MODES.map(({ mode, label, color }) => (
                 <button
                   key={mode}
@@ -564,13 +569,6 @@ const App: React.FC = () => {
               alignItems: 'center',
             }}
           >
-            <span>
-              {showManual
-                ? 'клик по клетке — переместить робота'
-                : showDraw
-                  ? 'клик по ячейке — рисовать'
-                  : 'клик по команде — удалить'}
-            </span>
             <GitHubIcon />
           </div>
         </div>

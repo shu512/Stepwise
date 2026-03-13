@@ -11,7 +11,7 @@ type Props = {
   hasProgram: boolean;
   onCommand: (cmd: CommandKind) => void;
   onLoopStart: () => void;
-  onLoopEnd: () => void;
+  onLoopEnd: (times: number) => void;
   onIfStart: (condition: Condition) => void;
   onIfElse: () => void;
   onIfEnd: () => void;
@@ -47,6 +47,7 @@ export const Controls: React.FC<Props> = ({
   onReset,
 }) => {
   const [selectedCondition, setSelectedCondition] = useState<Condition>('on_finish');
+  const [loopTimes, setLoopTimes] = useState('2');
 
   const btn = (extra?: React.CSSProperties): React.CSSProperties => ({
     padding: '5px 12px',
@@ -64,7 +65,6 @@ export const Controls: React.FC<Props> = ({
   const disabledStyle = (extra?: React.CSSProperties): React.CSSProperties =>
     btn({ opacity: 0.4, cursor: 'not-allowed', ...extra });
 
-  // Draggable command button — замыкается на isRunning, onCommand, btn, disabledStyle
   const DraggableCmd = ({ cmd }: { cmd: CommandKind }) => {
     const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
       id: `controls:${cmd}`,
@@ -94,6 +94,13 @@ export const Controls: React.FC<Props> = ({
     );
   };
 
+  const handleLoopEnd = () => {
+    const t = parseInt(loopTimes, 10);
+    if (isNaN(t) || t < 1) return;
+    onLoopEnd(t);
+    setLoopTimes('2');
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
       <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
@@ -107,14 +114,12 @@ export const Controls: React.FC<Props> = ({
           justifyContent: 'center',
         }}
       >
-        {/* Команды движения + STOP — draggable */}
         {(['UP', 'DOWN', 'LEFT', 'RIGHT', 'STOP'] as CommandKind[]).map(cmd => (
           <DraggableCmd key={cmd} cmd={cmd} />
         ))}
 
         <Divider />
 
-        {/* Loop */}
         <button
           disabled={isRunning}
           onClick={onLoopStart}
@@ -126,21 +131,48 @@ export const Controls: React.FC<Props> = ({
         >
           LOOP START
         </button>
-        <button
-          disabled={isRunning || !isInLoop}
-          onClick={onLoopEnd}
-          style={
-            isRunning || !isInLoop
-              ? disabledStyle()
-              : btn({ background: '#c8e6c9', borderColor: '#4caf50' })
-          }
-        >
-          LOOP END
-        </button>
+
+        {isInLoop ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#a09080' }}>×</span>
+            <input
+              type="number"
+              min={1}
+              value={loopTimes}
+              onChange={e => setLoopTimes(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') handleLoopEnd();
+              }}
+              style={{
+                width: 44,
+                padding: '4px 6px',
+                border: '1px solid #c0a030',
+                borderRadius: 3,
+                background: '#fdfaf4',
+                fontFamily: 'monospace',
+                fontSize: 13,
+                fontWeight: 600,
+                color: '#2a2a2a',
+                outline: 'none',
+                textAlign: 'center',
+              }}
+            />
+            <button
+              onClick={handleLoopEnd}
+              disabled={isRunning || !isInLoop}
+              style={btn({ background: '#c8e6c9', borderColor: '#4caf50' })}
+            >
+              LOOP END
+            </button>
+          </div>
+        ) : (
+          <button disabled style={disabledStyle()}>
+            LOOP END
+          </button>
+        )}
 
         <Divider />
 
-        {/* If */}
         <select
           disabled={isRunning}
           value={selectedCondition}
@@ -197,7 +229,6 @@ export const Controls: React.FC<Props> = ({
 
         <Divider />
 
-        {/* Clear / Run / Reset */}
         <button
           disabled={isRunning || !hasProgram}
           onClick={onClear}

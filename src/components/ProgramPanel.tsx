@@ -71,7 +71,7 @@ export const ProgramPanel: React.FC<Props> = ({
       {/* Блоки программы */}
       <div style={{ padding: 10, minHeight: 56 }}>
         <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
-          ПРОГРАММА {program.length > 0 && `· ~${countSteps(program)} шагов`}
+          ПРОГРАММА
         </div>
 
         {program.length > 0 ? (

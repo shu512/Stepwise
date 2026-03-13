@@ -1,10 +1,11 @@
 import { useEffect, useRef } from 'react';
 import { EditorView, basicSetup } from 'codemirror';
-import { keymap } from '@codemirror/view';
+import { keymap, placeholder } from '@codemirror/view';
 import { Prec } from '@codemirror/state';
 import { cpp } from '@codemirror/lang-cpp';
 import { oneDark } from '@codemirror/theme-one-dark';
 import { EditorState, Compartment } from '@codemirror/state';
+import { indentWithTab } from '@codemirror/commands';
 
 type Props = {
   value: string;
@@ -48,8 +49,10 @@ export const CodeEditor: React.FC<Props> = ({ value, onChange, onSubmit, disable
                   return true;
                 },
               },
+              indentWithTab,
             ]),
           ),
+          placeholder('UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}'),
           EditorView.updateListener.of(update => {
             if (update.docChanged) {
               onChangeRef.current(update.state.doc.toString());
