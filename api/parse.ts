@@ -6,12 +6,14 @@ const FREE_MODELS = ['meta-llama/llama-3.3-70b-instruct:free', 'stepfun/step-3.5
 const MODEL_LIMIT = 3;
 const SUPPORTED_LANGS: Lang[] = ['python', 'c', 'cpp', 'java', 'csharp', 'javascript'];
 
+type ServerValidatedLang = Exclude<Lang, 'python' | 'javascript'>;
+
 type GodBoltLine = {
   text: string;
   tag?: { line: number; column: number; text: string; severity: number };
 };
 
-const ROBOT_STUBS_C = `
+const C_STUBS = `
 void UP(void);
 void DOWN(void);
 void LEFT(void);
@@ -24,17 +26,55 @@ int wall_left(void);
 int wall_right(void);
 `.trim();
 
-const ROBOT_STUBS_CPP = ROBOT_STUBS_C;
+const CPP_STUBS = C_STUBS;
 
-const GODBOLT_COMPILER: Partial<Record<Lang, string>> = {
+const JAVA_STUBS = `
+    static void UP() {}
+    static void DOWN() {}
+    static void LEFT() {}
+    static void RIGHT() {}
+    static void STOP() {}
+    static boolean on_finish() { return false; }
+    static boolean wall_above() { return false; }
+    static boolean wall_below() { return false; }
+    static boolean wall_left() { return false; }
+    static boolean wall_right() { return false; }
+`.trimEnd();
+
+const CSHARP_STUBS = `
+    static void UP() {}
+    static void DOWN() {}
+    static void LEFT() {}
+    static void RIGHT() {}
+    static void STOP() {}
+    static bool on_finish() { return false; }
+    static bool wall_above() { return false; }
+    static bool wall_below() { return false; }
+    static bool wall_left() { return false; }
+    static bool wall_right() { return false; }
+`.trimEnd();
+
+const GODBOLT_COMPILER: Record<ServerValidatedLang, string> = {
   c: 'cg132',
   cpp: 'g132',
+  java: 'java2100',
+  csharp: 'dotnet700',
 };
 
-const validateViaGodbolt = async (lang: 'c' | 'cpp', code: string): Promise<string | null> => {
-  const stubs = lang === 'c' ? ROBOT_STUBS_C : ROBOT_STUBS_CPP;
-  const source = stubs + '\n\n' + code;
-  const compilerId = GODBOLT_COMPILER[lang]!;
+// Inserts stubs right after the opening brace of the first class declaration
+const injectClassStubs = (code: string, stubs: string): string => {
+  const classMatch = code.match(/class\s+\w[\w\d]*[^{]*\{/);
+  if (!classMatch || classMatch.index === undefined) return code;
+  const insertAt = classMatch.index + classMatch[0].length;
+  return code.slice(0, insertAt) + '\n' + stubs + '\n' + code.slice(insertAt);
+};
+
+const validateViaGodbolt = async (
+  lang: ServerValidatedLang,
+  source: string,
+  stubLineCount: number,
+): Promise<string | null> => {
+  const compilerId = GODBOLT_COMPILER[lang];
 
   let data: { stderr: GodBoltLine[]; code: number };
   try {
@@ -48,11 +88,10 @@ const validateViaGodbolt = async (lang: 'c' | 'cpp', code: string): Promise<stri
     return null; // godbolt unavailable — skip validation
   }
 
-  const stubLines = stubs.split('\n').length + 1;
   const errors = data.stderr
     .filter(line => line.tag && line.tag.severity >= 3)
     .map(line => {
-      const userLine = line.tag!.line - stubLines;
+      const userLine = line.tag!.line - stubLineCount;
       return userLine > 0 ? `строка ${userLine}: ${line.tag!.text}` : line.tag!.text;
     });
 
@@ -60,28 +99,41 @@ const validateViaGodbolt = async (lang: 'c' | 'cpp', code: string): Promise<stri
 };
 
 const validateC = async (code: string): Promise<string | null> => {
-  if (!code.includes('main')) {
-    return 'Не найдена функция main. Добавь int main() { ... }';
-  }
-  if (!code.includes('#include')) {
-    return 'Не найдена директива #include. Добавь #include <stdio.h>';
-  }
-  return validateViaGodbolt('c', code);
+  if (!code.includes('main')) return 'Не найдена функция main. Добавь int main() { ... }';
+  if (!code.includes('#include')) return 'Не найдена директива #include. Добавь #include <stdio.h>';
+  const source = C_STUBS + '\n\n' + code;
+  return validateViaGodbolt('c', source, C_STUBS.split('\n').length + 1);
 };
 
 const validateCpp = async (code: string): Promise<string | null> => {
-  if (!code.includes('main')) {
-    return 'Не найдена функция main. Добавь int main() { ... }';
-  }
-  if (!code.includes('#include')) {
-    return 'Не найдена директива #include. Добавь #include <iostream>';
-  }
-  return validateViaGodbolt('cpp', code);
+  if (!code.includes('main')) return 'Не найдена функция main. Добавь int main() { ... }';
+  const source = CPP_STUBS + '\n\n' + code;
+  return validateViaGodbolt('cpp', source, CPP_STUBS.split('\n').length + 1);
 };
 
-const validate: Partial<Record<Lang, (code: string) => Promise<string | null>>> = {
+const validateJava = async (code: string): Promise<string | null> => {
+  if (!code.includes('main'))
+    return 'Не найдена функция main. Добавь public static void main(String[] args) { ... }';
+  if (!code.match(/class\s+\w/)) return 'Не найден класс. Оберни код в public class Main { ... }';
+  const source = injectClassStubs(code, JAVA_STUBS);
+  const stubLineCount = JAVA_STUBS.split('\n').length + 1;
+  return validateViaGodbolt('java', source, stubLineCount);
+};
+
+const validateCSharp = async (code: string): Promise<string | null> => {
+  if (!code.includes('Main')) return 'Не найдена функция Main. Добавь static void Main() { ... }';
+  if (!code.match(/class\s+\w/)) return 'Не найден класс. Оберни код в class Program { ... }';
+  const source = injectClassStubs(code, CSHARP_STUBS);
+  const stubLineCount = CSHARP_STUBS.split('\n').length + 1;
+  return validateViaGodbolt('csharp', source, stubLineCount);
+};
+
+// Python and JS are validated on the client
+const SYNTAX_VALIDATORS: Record<ServerValidatedLang, (code: string) => Promise<string | null>> = {
   c: validateC,
   cpp: validateCpp,
+  java: validateJava,
+  csharp: validateCSharp,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -97,9 +149,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resolvedLang: Lang =
     typeof lang === 'string' && SUPPORTED_LANGS.includes(lang as Lang) ? (lang as Lang) : 'c';
 
-  const validator = validate[resolvedLang];
-  if (validator) {
-    const syntaxError = await validator(code);
+  const isServerValidatedLang = (lang: Lang): lang is ServerValidatedLang =>
+    lang in SYNTAX_VALIDATORS;
+
+  if (isServerValidatedLang(resolvedLang)) {
+    const syntaxError = await SYNTAX_VALIDATORS[resolvedLang](code);
     if (syntaxError) return res.json({ error: syntaxError });
   }
 

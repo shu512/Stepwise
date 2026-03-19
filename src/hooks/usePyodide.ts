@@ -24,6 +24,7 @@ export const usePyodide = () => {
       script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js';
       script.onload = async () => {
         try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           const pyodide = await (window as any).loadPyodide();
           instanceRef.current = pyodide;
           setState('ready');
