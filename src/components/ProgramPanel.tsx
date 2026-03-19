@@ -4,6 +4,7 @@ import type { Condition, ProgramItem } from '../types';
 import type { Lang } from '../utils/codegen';
 import { CodeEditor } from './CodeEditor';
 import { CommandChip } from './ui/CommandChip';
+import { CommandsLegend } from './CommandsLegend';
 import { ProgramDisplay } from './ProgramDisplay';
 import { Spinner } from './ui/Spinner';
 
@@ -139,6 +140,7 @@ export const ProgramPanel: React.FC<Props> = ({
           <div style={{ fontSize: 10, color: '#a09080', marginBottom: 6, letterSpacing: '0.06em' }}>
             ВВОД КОДА {modelUsed && <span style={{ color: COLOR_BORDER }}>· {modelUsed}</span>}
           </div>
+          <CommandsLegend />
           <CodeEditor
             value={code}
             lang={lang}
@@ -165,7 +167,9 @@ export const ProgramPanel: React.FC<Props> = ({
               disabled={isParsing || !code.trim()}
               style={{
                 padding: '4px 14px',
-                border: '1px solid #4caf50',
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderColor: '#4caf50',
                 borderRadius: 3,
                 background: isParsing || !code.trim() ? '#e8e0d4' : '#c8e6c9',
                 color: isParsing || !code.trim() ? '#a09080' : COLOR_TEXT,
