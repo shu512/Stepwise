@@ -6,7 +6,12 @@ const FREE_MODELS = ['meta-llama/llama-3.3-70b-instruct:free', 'stepfun/step-3.5
 const MODEL_LIMIT = 3;
 const SUPPORTED_LANGS: Lang[] = ['python', 'c', 'cpp', 'java', 'csharp', 'javascript'];
 
-const C_STUBS = `
+type GodBoltLine = {
+  text: string;
+  tag?: { line: number; column: number; text: string; severity: number };
+};
+
+const ROBOT_STUBS_C = `
 void UP(void);
 void DOWN(void);
 void LEFT(void);
@@ -19,24 +24,21 @@ int wall_left(void);
 int wall_right(void);
 `.trim();
 
-type GodBoltLine = {
-  text: string;
-  tag?: { line: number; column: number; text: string; severity: number };
+const ROBOT_STUBS_CPP = ROBOT_STUBS_C;
+
+const GODBOLT_COMPILER: Partial<Record<Lang, string>> = {
+  c: 'cg132',
+  cpp: 'g132',
 };
 
-const validateC = async (code: string): Promise<string | null> => {
-  if (!code.includes('main')) {
-    return 'Не найдена функция main. Добавь int main() { ... }';
-  }
-  if (!code.includes('#include')) {
-    return 'Не найдена директива #include. Добавь #include <stdio.h>';
-  }
-
-  const source = C_STUBS + '\n\n' + code;
+const validateViaGodbolt = async (lang: 'c' | 'cpp', code: string): Promise<string | null> => {
+  const stubs = lang === 'c' ? ROBOT_STUBS_C : ROBOT_STUBS_CPP;
+  const source = stubs + '\n\n' + code;
+  const compilerId = GODBOLT_COMPILER[lang]!;
 
   let data: { stderr: GodBoltLine[]; code: number };
   try {
-    const res = await fetch('https://godbolt.org/api/compiler/cg132/compile', {
+    const res = await fetch(`https://godbolt.org/api/compiler/${compilerId}/compile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify({ source, options: { userArguments: '-fsyntax-only -w' } }),
@@ -46,7 +48,7 @@ const validateC = async (code: string): Promise<string | null> => {
     return null; // godbolt unavailable — skip validation
   }
 
-  const stubLines = C_STUBS.split('\n').length + 1;
+  const stubLines = stubs.split('\n').length + 1;
   const errors = data.stderr
     .filter(line => line.tag && line.tag.severity >= 3)
     .map(line => {
@@ -55,6 +57,31 @@ const validateC = async (code: string): Promise<string | null> => {
     });
 
   return errors.length > 0 ? errors.join('\n') : null;
+};
+
+const validateC = async (code: string): Promise<string | null> => {
+  if (!code.includes('main')) {
+    return 'Не найдена функция main. Добавь int main() { ... }';
+  }
+  if (!code.includes('#include')) {
+    return 'Не найдена директива #include. Добавь #include <stdio.h>';
+  }
+  return validateViaGodbolt('c', code);
+};
+
+const validateCpp = async (code: string): Promise<string | null> => {
+  if (!code.includes('main')) {
+    return 'Не найдена функция main. Добавь int main() { ... }';
+  }
+  if (!code.includes('#include')) {
+    return 'Не найдена директива #include. Добавь #include <iostream>';
+  }
+  return validateViaGodbolt('cpp', code);
+};
+
+const validate: Partial<Record<Lang, (code: string) => Promise<string | null>>> = {
+  c: validateC,
+  cpp: validateCpp,
 };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -70,11 +97,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const resolvedLang: Lang =
     typeof lang === 'string' && SUPPORTED_LANGS.includes(lang as Lang) ? (lang as Lang) : 'c';
 
-  if (resolvedLang === 'c') {
-    const syntaxError = await validateC(code);
-    if (syntaxError) {
-      return res.json({ error: syntaxError });
-    }
+  const validator = validate[resolvedLang];
+  if (validator) {
+    const syntaxError = await validator(code);
+    if (syntaxError) return res.json({ error: syntaxError });
   }
 
   const escapedCode = '```\n' + code + '\n```';

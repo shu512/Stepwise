@@ -1,9 +1,19 @@
-import { useRef, useState } from 'react';
-import { C_SCAFFOLD } from '../constants';
+import { useEffect, useRef, useState } from 'react';
+import { SCAFFOLDS } from '../constants';
 import type { ProgramItem } from '../types';
 import type { Lang } from '../utils/codegen';
+import { usePyodide } from './usePyodide';
 
 type CacheEntry = { items: ProgramItem[]; model: string } | { error: string; model: string };
+
+const validateJS = (code: string): string | null => {
+  try {
+    new Function(code);
+    return null;
+  } catch (e) {
+    return e instanceof SyntaxError ? `Синтаксическая ошибка: ${e.message}` : null;
+  }
+};
 
 type Options = {
   lang: Lang;
@@ -12,16 +22,42 @@ type Options = {
 };
 
 export const useCodeParser = ({ lang, loadProgram, clearProgram }: Options) => {
-  const [code, setCode] = useState(C_SCAFFOLD);
+  const [code, setCode] = useState(SCAFFOLDS[lang]);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [modelUsed, setModelUsed] = useState('');
 
   const cache = useRef(new Map<string, CacheEntry>());
+  const { state: pyodideState, validateSyntax: validatePython } = usePyodide();
+
+  const prevLang = useRef(lang);
+  useEffect(() => {
+    if (lang !== prevLang.current) {
+      prevLang.current = lang;
+      setCode(SCAFFOLDS[lang]);
+      setParseError('');
+    }
+  }, [lang]);
 
   const parse = async () => {
     const trimmed = code.trim();
     if (!trimmed) return;
+
+    if (lang === 'javascript') {
+      const err = validateJS(trimmed);
+      if (err) {
+        setParseError(err);
+        return;
+      }
+    }
+
+    if (lang === 'python') {
+      const err = await validatePython(trimmed);
+      if (err) {
+        setParseError(err);
+        return;
+      }
+    }
 
     const cached = cache.current.get(trimmed);
     if (cached) {
@@ -56,5 +92,12 @@ export const useCodeParser = ({ lang, loadProgram, clearProgram }: Options) => {
     }
   };
 
-  return { code, setCode, isParsing, parseError, modelUsed, parse };
+  return {
+    code,
+    setCode,
+    isParsing: isParsing || pyodideState === 'loading',
+    parseError,
+    modelUsed,
+    parse,
+  };
 };

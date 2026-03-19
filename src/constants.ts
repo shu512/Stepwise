@@ -1,4 +1,5 @@
 import type { Position } from './types';
+import type { Lang } from './utils/codegen';
 
 export const STEP_DELAY = 350;
 export const DEFAULT_GRID_SIZE = 8;
@@ -35,9 +36,31 @@ export const CELL_COLORS = {
   robot: '#e63946',
 } as const;
 
-export const C_SCAFFOLD = `#include <stdio.h>
+export const SCAFFOLDS: Record<Lang, string> = {
+  python: `UP()
+`,
+  c: `#include <stdio.h>
 
 int main() {
+  UP();
+  return 0;
+}`,
+  cpp: `#include <iostream>
+
+int main() {
+  UP();
+  return 0;
+}`,
+  java: `public class Main {
+  public static void main(String[] args) {
     UP();
-    return 0;
-}`;
+  }
+}`,
+  csharp: `class Program {
+  static void Main() {
+    UP();
+  }
+}`,
+  javascript: `UP();
+`,
+};

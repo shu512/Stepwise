@@ -7,20 +7,52 @@ import { oneDark } from '@codemirror/theme-one-dark';
 import { keymap, placeholder } from '@codemirror/view';
 import { EditorView, basicSetup } from 'codemirror';
 import { useEffect, useRef } from 'react';
-import { C_SCAFFOLD } from '../constants';
 import type { Lang } from '../utils/codegen';
 
 const PLACEHOLDERS: Record<Lang, string> = {
-  python: 'UP()\nfor i in range(3):\n    RIGHT()\n    STOP()',
-  c: C_SCAFFOLD,
-  cpp: 'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
-  java: 'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
-  csharp: 'UP();\nfor (int i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
-  javascript: 'UP();\nfor (let i = 0; i < 3; i++) {\n    RIGHT();\n    STOP();\n}',
-};
+  python: `UP()
+  for i in range(3):
+    RIGHT()
+`,
+  c: `#include <stdio.h>
 
-const DEFAULT_DOC: Partial<Record<Lang, string>> = {
-  c: C_SCAFFOLD,
+int main() {
+  UP();
+  for (int i = 0; i < 3; i++) {
+    RIGHT();
+  }
+  return 0;
+}`,
+  cpp: `#include <iostream>
+
+int main() {
+  UP();
+  for (int i = 0; i < 3; i++) {
+    RIGHT();
+  }
+  return 0;
+}`,
+  java: `public class Main {
+  public static void main(String[] args) {
+    UP();
+    for (int i = 0; i < 3; i++) {
+      RIGHT();
+    }
+  }
+}`,
+  csharp: `class Program {
+  static void Main() {
+    UP();
+    for (int i = 0; i < 3; i++) {
+      RIGHT();
+    }
+  }
+}`,
+  javascript: `UP();
+  for (let i = 0; i < 3; i++) {
+    RIGHT();
+  }
+`,
 };
 
 const getLangExtension = (lang: Lang) => {
@@ -67,14 +99,9 @@ export const CodeEditor: React.FC<Props> = ({
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const initialDoc = value || DEFAULT_DOC[lang] || '';
-    if (initialDoc && !value) {
-      onChangeRef.current(initialDoc);
-    }
-
     const view = new EditorView({
       state: EditorState.create({
-        doc: initialDoc,
+        doc: value,
         extensions: [
           basicSetup,
           oneDark,
