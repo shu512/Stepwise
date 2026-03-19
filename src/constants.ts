@@ -34,3 +34,10 @@ export const CELL_COLORS = {
   finish: '#e9c46a',
   robot: '#e63946',
 } as const;
+
+export const C_SCAFFOLD = `#include <stdio.h>
+
+int main() {
+    UP();
+    return 0;
+}`;

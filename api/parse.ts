@@ -6,6 +6,57 @@ const FREE_MODELS = ['meta-llama/llama-3.3-70b-instruct:free', 'stepfun/step-3.5
 const MODEL_LIMIT = 3;
 const SUPPORTED_LANGS: Lang[] = ['python', 'c', 'cpp', 'java', 'csharp', 'javascript'];
 
+const C_STUBS = `
+void UP(void);
+void DOWN(void);
+void LEFT(void);
+void RIGHT(void);
+void STOP(void);
+int on_finish(void);
+int wall_above(void);
+int wall_below(void);
+int wall_left(void);
+int wall_right(void);
+`.trim();
+
+type GodBoltLine = {
+  text: string;
+  tag?: { line: number; column: number; text: string; severity: number };
+};
+
+const validateC = async (code: string): Promise<string | null> => {
+  if (!code.includes('main')) {
+    return 'Не найдена функция main. Добавь int main() { ... }';
+  }
+  if (!code.includes('#include')) {
+    return 'Не найдена директива #include. Добавь #include <stdio.h>';
+  }
+
+  const source = C_STUBS + '\n\n' + code;
+
+  let data: { stderr: GodBoltLine[]; code: number };
+  try {
+    const res = await fetch('https://godbolt.org/api/compiler/cg132/compile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify({ source, options: { userArguments: '-fsyntax-only -w' } }),
+    });
+    data = (await res.json()) as typeof data;
+  } catch {
+    return null; // godbolt unavailable — skip validation
+  }
+
+  const stubLines = C_STUBS.split('\n').length + 1;
+  const errors = data.stderr
+    .filter(line => line.tag && line.tag.severity >= 3)
+    .map(line => {
+      const userLine = line.tag!.line - stubLines;
+      return userLine > 0 ? `строка ${userLine}: ${line.tag!.text}` : line.tag!.text;
+    });
+
+  return errors.length > 0 ? errors.join('\n') : null;
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const { code, lang } = req.body as { code?: unknown; lang?: unknown };
 
@@ -15,8 +66,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (code.length > 2000) {
     return res.status(400).json({ error: 'Код слишком длинный (макс. 2000 символов)' });
   }
+
   const resolvedLang: Lang =
     typeof lang === 'string' && SUPPORTED_LANGS.includes(lang as Lang) ? (lang as Lang) : 'c';
+
+  if (resolvedLang === 'c') {
+    const syntaxError = await validateC(code);
+    if (syntaxError) {
+      return res.json({ error: syntaxError });
+    }
+  }
 
   const escapedCode = '```\n' + code + '\n```';
   const systemPrompt = buildSystemPrompt(resolvedLang);
@@ -78,7 +137,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .status(400)
           .json({ error: 'Модель вернула некорректный формат, попробуйте снова' });
       }
-
       return res.json({ items: parsed, model: data.model ?? 'unknown' });
     } catch {
       return res.status(400).json({ error: 'Не удалось распарсить ответ модели' });

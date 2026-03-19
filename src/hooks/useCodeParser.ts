@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { C_SCAFFOLD } from '../constants';
 import type { ProgramItem } from '../types';
 import type { Lang } from '../utils/codegen';
 
@@ -11,7 +12,7 @@ type Options = {
 };
 
 export const useCodeParser = ({ lang, loadProgram, clearProgram }: Options) => {
-  const [code, setCode] = useState('');
+  const [code, setCode] = useState(C_SCAFFOLD);
   const [isParsing, setIsParsing] = useState(false);
   const [parseError, setParseError] = useState('');
   const [modelUsed, setModelUsed] = useState('');
