@@ -14,16 +14,16 @@ type GodBoltLine = {
 };
 
 const C_STUBS = `
-void UP(void);
-void DOWN(void);
-void LEFT(void);
-void RIGHT(void);
-void STOP(void);
-int on_finish(void);
-int wall_above(void);
-int wall_below(void);
-int wall_left(void);
-int wall_right(void);
+void UP(void) {}
+void DOWN(void) {}
+void LEFT(void) {}
+void RIGHT(void) {}
+void STOP(void) {}
+int on_finish(void) { return 0; }
+int wall_above(void) { return 0; }
+int wall_below(void) { return 0; }
+int wall_left(void) { return 0; }
+int wall_right(void) { return 0; }
 `.trim();
 
 const CPP_STUBS = C_STUBS;
@@ -55,10 +55,10 @@ const CSHARP_STUBS = `
 `.trimEnd();
 
 const GODBOLT_COMPILER: Record<ServerValidatedLang, string> = {
-  c: 'cg132',
-  cpp: 'g132',
+  c: 'cg152',
+  cpp: 'g152',
   java: 'java2100',
-  csharp: 'dotnet700',
+  csharp: 'dotnet80csharpcoreclr',
 };
 
 // Inserts stubs right after the opening brace of the first class declaration
@@ -73,22 +73,24 @@ const validateViaGodbolt = async (
   lang: ServerValidatedLang,
   source: string,
   stubLineCount: number,
+  errorStream: 'stderr' | 'stdout' = 'stderr',
+  compilerOptions: string = '-fsyntax-only -w',
 ): Promise<string | null> => {
   const compilerId = GODBOLT_COMPILER[lang];
 
-  let data: { stderr: GodBoltLine[]; code: number };
+  let data: { stderr: GodBoltLine[]; stdout: GodBoltLine[]; code: number };
   try {
     const res = await fetch(`https://godbolt.org/api/compiler/${compilerId}/compile`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ source, options: { userArguments: '-fsyntax-only -w' } }),
+      body: JSON.stringify({ source, options: { userArguments: compilerOptions } }),
     });
     data = (await res.json()) as typeof data;
   } catch {
     return null; // godbolt unavailable — skip validation
   }
 
-  const errors = data.stderr
+  const errors = data[errorStream]
     .filter(line => line.tag && line.tag.severity >= 3)
     .map(line => {
       const userLine = line.tag!.line - stubLineCount;
@@ -114,10 +116,10 @@ const validateCpp = async (code: string): Promise<string | null> => {
 const validateJava = async (code: string): Promise<string | null> => {
   if (!code.includes('main'))
     return 'Не найдена функция main. Добавь public static void main(String[] args) { ... }';
-  if (!code.match(/class\s+\w/)) return 'Не найден класс. Оберни код в public class Main { ... }';
+  if (!code.match(/class\s+\w/)) return 'Не найден класс. Оберни код в class Main { ... }';
   const source = injectClassStubs(code, JAVA_STUBS);
   const stubLineCount = JAVA_STUBS.split('\n').length + 1;
-  return validateViaGodbolt('java', source, stubLineCount);
+  return validateViaGodbolt('java', source, stubLineCount, 'stderr', '');
 };
 
 const validateCSharp = async (code: string): Promise<string | null> => {
@@ -125,7 +127,7 @@ const validateCSharp = async (code: string): Promise<string | null> => {
   if (!code.match(/class\s+\w/)) return 'Не найден класс. Оберни код в class Program { ... }';
   const source = injectClassStubs(code, CSHARP_STUBS);
   const stubLineCount = CSHARP_STUBS.split('\n').length + 1;
-  return validateViaGodbolt('csharp', source, stubLineCount);
+  return validateViaGodbolt('csharp', source, stubLineCount, 'stdout', '');
 };
 
 // Python and JS are validated on the client

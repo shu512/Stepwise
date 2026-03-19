@@ -32,7 +32,7 @@ int main() {
   }
   return 0;
 }`,
-  java: `public class Main {
+  java: `class Main {
   public static void main(String[] args) {
     UP();
     for (int i = 0; i < 3; i++) {

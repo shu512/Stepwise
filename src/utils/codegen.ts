@@ -101,8 +101,7 @@ const wrap: Record<Lang, (body: string) => string> = {
   python: body => `def main():\n${body}\n\nmain()`,
   c: body => `#include <stdio.h>\n\nint main() {\n${body}\n    return 0;\n}`,
   cpp: body => `#include <iostream>\n\nint main() {\n${body}\n    return 0;\n}`,
-  java: body =>
-    `public class Main {\n    public static void main(String[] args) {\n${body}\n    }\n}`,
+  java: body => `class Main {\n    public static void main(String[] args) {\n${body}\n    }\n}`,
   csharp: body => `class Program {\n    static void Main() {\n${body}\n    }\n}`,
   javascript: body => `function main() {\n${body}\n}\n\nmain();`,
 };

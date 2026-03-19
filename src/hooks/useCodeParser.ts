@@ -58,8 +58,8 @@ export const useCodeParser = ({ lang, loadProgram, clearProgram }: Options) => {
         return;
       }
     }
-
-    const cached = cache.current.get(trimmed);
+    const cacheKey = `${lang}:${trimmed}`;
+    const cached = cache.current.get(cacheKey);
     if (cached) {
       if ('model' in cached) setModelUsed(cached.model);
       if ('error' in cached) setParseError(cached.error);
@@ -80,7 +80,7 @@ export const useCodeParser = ({ lang, loadProgram, clearProgram }: Options) => {
       });
       const data = (await res.json()) as CacheEntry;
       if ('model' in data) {
-        cache.current.set(trimmed, data);
+        cache.current.set(cacheKey, data);
         setModelUsed(data.model);
       }
       if ('error' in data) setParseError(data.error);

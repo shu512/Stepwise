@@ -51,7 +51,7 @@ int main() {
   UP();
   return 0;
 }`,
-  java: `public class Main {
+  java: `class Main {
   public static void main(String[] args) {
     UP();
   }
