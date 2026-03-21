@@ -1,6 +1,145 @@
+import {
+  DndContext,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useState } from 'react';
 import { COLOR_BG, COLOR_BG_LIGHT, COLOR_BORDER, COLOR_LABEL, COLOR_TEXT } from '../constants';
 import type { Position, ProgramItem, SavedMap } from '../types';
+
+type RowProps = {
+  map: SavedMap;
+  isActive: boolean;
+  isEditing: boolean;
+  editingName: string;
+  copyFeedback: string | null;
+  onLoad: () => void;
+  onStartEditing: () => void;
+  onCommitEdit: () => void;
+  onCancelEdit: () => void;
+  onEditingNameChange: (v: string) => void;
+  onExport: () => void;
+  onDelete: () => void;
+  btn: (extra?: React.CSSProperties) => React.CSSProperties;
+  inputStyle: React.CSSProperties;
+};
+
+const SortableMapRow: React.FC<RowProps> = ({
+  map,
+  isActive,
+  isEditing,
+  editingName,
+  copyFeedback,
+  onLoad,
+  onStartEditing,
+  onCommitEdit,
+  onCancelEdit,
+  onEditingNameChange,
+  onExport,
+  onDelete,
+  btn,
+  inputStyle,
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+    id: map.id,
+  });
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 4,
+        borderLeft: isActive ? '3px solid #4caf50' : '3px solid transparent',
+        opacity: isDragging ? 0.4 : 1,
+        transform: CSS.Transform.toString(transform),
+        transition,
+      }}
+    >
+      {isEditing ? (
+        <input
+          autoFocus
+          value={editingName}
+          onChange={e => onEditingNameChange(e.target.value)}
+          onBlur={onCommitEdit}
+          onKeyDown={e => {
+            if (e.key === 'Enter') onCommitEdit();
+            if (e.key === 'Escape') onCancelEdit();
+          }}
+          style={inputStyle}
+        />
+      ) : (
+        <button
+          {...attributes}
+          {...listeners}
+          onClick={onLoad}
+          onDoubleClick={onStartEditing}
+          style={btn({
+            flex: 1,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            cursor: 'grab',
+            touchAction: 'none',
+          })}
+          title={map.name}
+        >
+          <span
+            style={{
+              display: 'inline-block',
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              backgroundColor: map.program && map.program.length > 0 ? '#4caf50' : '#d0c8b8',
+              marginRight: 4,
+              flexShrink: 0,
+              verticalAlign: 'middle',
+            }}
+            title={map.program?.length ? 'С программой' : 'Без программы'}
+          />
+          <span
+            style={{
+              display: 'inline-block',
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              backgroundColor: map.strictWalls ? '#e63946' : '#d0c8b8',
+              marginRight: 5,
+              flexShrink: 0,
+              verticalAlign: 'middle',
+            }}
+            title={map.strictWalls ? 'Столкновения включены' : 'Без столкновений'}
+          />
+          {map.name}
+        </button>
+      )}
+      <button
+        onClick={onExport}
+        style={btn({
+          padding: '4px 7px',
+          flexShrink: 0,
+          color: copyFeedback === map.id ? '#4caf50' : COLOR_TEXT,
+        })}
+        title="Экспортировать"
+      >
+        {copyFeedback === map.id ? '✓' : '↑'}
+      </button>
+      <button
+        onClick={onDelete}
+        style={btn({ padding: '4px 7px', color: '#c0392b', flexShrink: 0 })}
+        title="Удалить"
+      >
+        ✕
+      </button>
+    </div>
+  );
+};
 
 type Props = {
   maps: SavedMap[];
@@ -24,6 +163,7 @@ type Props = {
   onDelete: (id: string) => void;
   onImport: (map: SavedMap) => void;
   onRename: (id: string, name: string) => void;
+  onReorder: (fromId: string, toId: string) => void;
   onImportBulk: () => number;
 };
 
@@ -41,6 +181,7 @@ export const MapsSidebar: React.FC<Props> = ({
   onDelete,
   onImport,
   onRename,
+  onReorder,
   onImportBulk,
 }) => {
   const [saveProgram, setSaveProgram] = useState(false);
@@ -51,11 +192,12 @@ export const MapsSidebar: React.FC<Props> = ({
   const [editingName, setEditingName] = useState('');
   const [bulkFeedback, setBulkFeedback] = useState<string | null>(null);
 
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
   const handleSaveStart = () => {
     setSaving(true);
     setSaveName(`карта ${maps.length + 1}`);
   };
-
   const handleSaveCommit = () => {
     if (!saveName.trim()) return;
     onSave(
@@ -70,7 +212,6 @@ export const MapsSidebar: React.FC<Props> = ({
     setSaving(false);
     setSaveName('');
   };
-
   const handleSaveCancel = () => {
     setSaving(false);
     setSaveName('');
@@ -100,14 +241,13 @@ export const MapsSidebar: React.FC<Props> = ({
 
   const handleImportBulk = () => {
     const count = onImportBulk();
-    const msg = count === 0 ? 'Все карты уже добавлены' : `Добавлено: ${count}`;
-    setBulkFeedback(msg);
+    setBulkFeedback(count === 0 ? 'Все карты уже добавлены' : `Добавлено: ${count}`);
     setTimeout(() => setBulkFeedback(null), 2500);
   };
 
-  const startEditing = (map: SavedMap) => {
-    setEditingId(map.id);
-    setEditingName(map.name);
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) onReorder(String(active.id), String(over.id));
   };
 
   const commitEdit = () => {
@@ -252,105 +392,45 @@ export const MapsSidebar: React.FC<Props> = ({
         </div>
       </div>
 
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 4,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          maxHeight: 'calc(100vh - 187px)', // app padding (24) + sidebar padding (8) + sidebar header (13) + sidebar actions (126) + sidebar gaps (16)
-        }}
-      >
-        {maps.length === 0 && <span style={{ color: COLOR_BORDER, fontSize: 11 }}>пусто</span>}
-        {maps.map(map => {
-          const isActive = map.id === activeMapId;
-          return (
-            <div
-              key={map.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 4,
-                borderLeft: isActive ? '3px solid #4caf50' : '3px solid transparent',
-              }}
-            >
-              {editingId === map.id ? (
-                <input
-                  autoFocus
-                  value={editingName}
-                  onChange={e => setEditingName(e.target.value)}
-                  onBlur={commitEdit}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') commitEdit();
-                    if (e.key === 'Escape') setEditingId(null);
-                  }}
-                  style={inputStyle}
-                />
-              ) : (
-                <button
-                  onClick={() => onLoad(map)}
-                  onDoubleClick={() => startEditing(map)}
-                  style={btn({
-                    flex: 1,
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                  })}
-                  title={map.name}
-                >
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      backgroundColor:
-                        map.program && map.program.length > 0 ? '#4caf50' : '#d0c8b8',
-                      marginRight: 4,
-                      flexShrink: 0,
-                      verticalAlign: 'middle',
-                    }}
-                    title={map.program?.length ? 'С программой' : 'Без программы'}
-                  />
-                  <span
-                    style={{
-                      display: 'inline-block',
-                      width: 7,
-                      height: 7,
-                      borderRadius: '50%',
-                      backgroundColor: map.strictWalls ? '#e63946' : '#d0c8b8',
-                      marginRight: 5,
-                      flexShrink: 0,
-                      verticalAlign: 'middle',
-                    }}
-                    title={map.strictWalls ? 'Столкновения включены' : 'Без столкновений'}
-                  />
-                  {map.name}
-                </button>
-              )}
-              <button
-                onClick={() => handleExport(map)}
-                style={btn({
-                  padding: '4px 7px',
-                  flexShrink: 0,
-                  color: copyFeedback === map.id ? '#4caf50' : COLOR_TEXT,
-                })}
-                title="Экспортировать"
-              >
-                {copyFeedback === map.id ? '✓' : '↑'}
-              </button>
-              <button
-                onClick={() => onDelete(map.id)}
-                style={btn({ padding: '4px 7px', color: '#c0392b', flexShrink: 0 })}
-                title="Удалить"
-              >
-                ✕
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <SortableContext items={maps.map(m => m.id)} strategy={verticalListSortingStrategy}>
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 4,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              maxHeight:
+                'calc(100vh - 187px)' /* app padding (24) + sidebar padding (8) + sidebar header (13) + sidebar actions (126) + sidebar gaps (16) */,
+            }}
+          >
+            {maps.length === 0 && <span style={{ color: COLOR_BORDER, fontSize: 11 }}>пусто</span>}
+            {maps.map(map => (
+              <SortableMapRow
+                key={map.id}
+                map={map}
+                isActive={map.id === activeMapId}
+                isEditing={editingId === map.id}
+                editingName={editingName}
+                copyFeedback={copyFeedback}
+                onLoad={() => onLoad(map)}
+                onStartEditing={() => {
+                  setEditingId(map.id);
+                  setEditingName(map.name);
+                }}
+                onCommitEdit={commitEdit}
+                onCancelEdit={() => setEditingId(null)}
+                onEditingNameChange={setEditingName}
+                onExport={() => handleExport(map)}
+                onDelete={() => onDelete(map.id)}
+                btn={btn}
+                inputStyle={inputStyle}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };

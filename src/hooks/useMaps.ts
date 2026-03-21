@@ -1,3 +1,4 @@
+import { arrayMove } from '@dnd-kit/sortable';
 import { useState } from 'react';
 import { LEARNING_MAPS } from '../data/learningMaps';
 import type { Position, ProgramItem, SavedMap } from '../types';
@@ -54,6 +55,13 @@ export const useMaps = () => {
   const renameMap = (id: string, name: string) =>
     update(maps.map(m => (m.id === id ? { ...m, name } : m)));
 
+  const reorderMaps = (fromId: string, toId: string) => {
+    const from = maps.findIndex(m => m.id === fromId);
+    const to = maps.findIndex(m => m.id === toId);
+    if (from === -1 || to === -1) return;
+    update(arrayMove(maps, from, to));
+  };
+
   const importBulk = (incoming: SavedMap[]): number => {
     const existingIds = new Set(maps.map(m => m.id));
     const toAdd = incoming.filter(m => !existingIds.has(m.id));
@@ -71,6 +79,7 @@ export const useMaps = () => {
     deleteMap,
     importMap,
     renameMap,
+    reorderMaps,
     importLearningMaps,
   };
 };

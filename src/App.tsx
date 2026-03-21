@@ -70,6 +70,7 @@ const App: React.FC = () => {
     importLearningMaps,
     activeMapId,
     loadMap,
+    reorderMaps,
   } = useMaps();
 
   const programRef = useRef(program);
@@ -278,6 +279,7 @@ const App: React.FC = () => {
               onDelete={deleteMap}
               onImport={importMap}
               onRename={renameMap}
+              onReorder={reorderMaps}
               onImportBulk={importLearningMaps}
             />
           </div>
