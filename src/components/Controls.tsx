@@ -10,6 +10,7 @@ type Props = {
   isInIf: boolean;
   canElse: boolean;
   hasProgram: boolean;
+  speed: number;
   onCommand: (cmd: CommandKind) => void;
   onLoopStart: () => void;
   onLoopEnd: (times: number) => void;
@@ -19,6 +20,7 @@ type Props = {
   onClear: () => void;
   onRun: () => void;
   onReset: () => void;
+  onSpeedChange: (multiplier: number) => void;
 };
 
 const CONDITIONS: { value: Condition; label: string }[] = [
@@ -30,6 +32,7 @@ const CONDITIONS: { value: Condition; label: string }[] = [
 ];
 
 const MOVE_COMMANDS: CommandKind[] = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'STOP'];
+const SPEEDS = [0.5, 1, 2, 4];
 
 const Divider = () => <span style={{ color: '#c0b0a0', fontSize: 16, userSelect: 'none' }}>|</span>;
 
@@ -57,6 +60,7 @@ export const Controls: React.FC<Props> = ({
   isInIf,
   canElse,
   hasProgram,
+  speed,
   onCommand,
   onLoopStart,
   onLoopEnd,
@@ -66,6 +70,7 @@ export const Controls: React.FC<Props> = ({
   onClear,
   onRun,
   onReset,
+  onSpeedChange,
 }) => {
   const [selectedCondition, setSelectedCondition] = useState<Condition>('on_finish');
   const [loopTimes, setLoopTimes] = useState('2');
@@ -88,14 +93,12 @@ export const Controls: React.FC<Props> = ({
           justifyContent: 'center',
         }}
       >
-        {/* Movement commands */}
         {MOVE_COMMANDS.map(cmd => (
           <DraggableCmd key={cmd} cmd={cmd} disabled={isRunning} onClick={() => onCommand(cmd)} />
         ))}
 
         <Divider />
 
-        {/* Loop */}
         <button
           disabled={isRunning}
           onClick={onLoopStart}
@@ -149,7 +152,6 @@ export const Controls: React.FC<Props> = ({
 
         <Divider />
 
-        {/* If */}
         <select
           disabled={isRunning}
           value={selectedCondition}
@@ -205,7 +207,6 @@ export const Controls: React.FC<Props> = ({
 
         <Divider />
 
-        {/* Actions */}
         <button
           disabled={isRunning || !hasProgram}
           onClick={onClear}
@@ -215,6 +216,24 @@ export const Controls: React.FC<Props> = ({
         >
           CLEAR
         </button>
+
+        <Divider />
+
+        {SPEEDS.map(s => (
+          <button
+            key={s}
+            onClick={() => onSpeedChange(s)}
+            style={btn({
+              padding: '5px 8px',
+              fontSize: 11,
+              background: speed === s ? '#e8e0d0' : COLOR_BG,
+              borderColor: speed === s ? '#8a7060' : COLOR_BORDER,
+              fontWeight: speed === s ? 700 : 600,
+            })}
+          >
+            {s}×
+          </button>
+        ))}
 
         <Divider />
 

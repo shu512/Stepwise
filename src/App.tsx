@@ -32,13 +32,8 @@ const App: React.FC = () => {
     loadGrid,
     resetGrid,
   } = useGrid(ui.gridSize);
-  const { robot, isRunning, stopReason, message, runProgram, reset, teleport } = useRobot(
-    wallsRef,
-    start,
-    finish,
-    ui.gridSize,
-    ui.strictWalls,
-  );
+  const { robot, isRunning, stopReason, message, speed, runProgram, reset, teleport, changeSpeed } =
+    useRobot(wallsRef, start, finish, ui.gridSize, ui.strictWalls);
   const {
     program,
     editStack,
@@ -192,6 +187,8 @@ const App: React.FC = () => {
               isInIf={isInIf}
               canElse={canElse}
               hasProgram={program.length > 0 || isEditing}
+              speed={speed}
+              onSpeedChange={changeSpeed}
               onCommand={addCommand}
               onLoopStart={loopStart}
               onLoopEnd={loopEnd}

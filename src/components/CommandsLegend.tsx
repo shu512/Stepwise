@@ -4,7 +4,7 @@ import { COLOR_BORDER } from '../constants';
 const COMMANDS = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'STOP'];
 const CONDITIONS = ['on_finish', 'wall_above', 'wall_below', 'wall_left', 'wall_right'];
 
-const chip = (label: string): React.CSSProperties => ({
+const chip = (): React.CSSProperties => ({
   display: 'inline-block',
   padding: '1px 7px',
   border: `1px solid ${COLOR_BORDER}`,
@@ -42,7 +42,7 @@ export const CommandsLegend: React.FC = () => {
             <div style={{ fontSize: 10, color: '#a09080', marginBottom: 4 }}>Движение</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {COMMANDS.map(cmd => (
-                <span key={cmd} style={chip(cmd)}>
+                <span key={cmd} style={chip()}>
                   {cmd}()
                 </span>
               ))}
@@ -52,7 +52,7 @@ export const CommandsLegend: React.FC = () => {
             <div style={{ fontSize: 10, color: '#a09080', marginBottom: 4 }}>Условия</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
               {CONDITIONS.map(cond => (
-                <span key={cond} style={chip(cond)}>
+                <span key={cond} style={chip()}>
                   {cond}()
                 </span>
               ))}

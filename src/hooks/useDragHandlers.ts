@@ -10,7 +10,7 @@ import {
   type DragOverEvent,
   type DragStartEvent,
 } from '@dnd-kit/core';
-import { useState } from 'react';
+import { useState, type RefObject } from 'react';
 import type { ProgramItem } from '../types';
 import { genId } from '../utils/ids';
 import {
@@ -22,7 +22,7 @@ import {
 } from '../utils/program';
 
 type Options = {
-  programRef: React.MutableRefObject<ProgramItem[]>;
+  programRef: RefObject<ProgramItem[]>;
   insertNewItem: (item: ProgramItem, containerPath: number[], index: number) => void;
   moveItem: (activeId: string, overId: string, overContainerPath: number[]) => void;
 };
