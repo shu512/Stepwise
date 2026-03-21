@@ -149,12 +149,12 @@ export const ProgramDisplay: React.FC<Props> = ({
                     <span style={{ color: '#bbb', fontSize: 10 }}>пусто</span>
                   )}
                 </div>
-                {item.else.length > 0 && (
-                  <div
-                    onClick={e => e.stopPropagation()}
-                    style={{ paddingLeft: 8, borderLeft: '2px solid #e08080' }}
-                  >
-                    <div style={{ fontSize: 10, color: '#6a6a6a', marginBottom: 2 }}>else</div>
+                <div
+                  onClick={e => e.stopPropagation()}
+                  style={{ paddingLeft: 8, borderLeft: '2px solid #e08080' }}
+                >
+                  <div style={{ fontSize: 10, color: '#6a6a6a', marginBottom: 2 }}>else</div>
+                  {item.else.length > 0 ? (
                     <ProgramDisplay
                       items={item.else}
                       depth={depth + 1}
@@ -165,8 +165,10 @@ export const ProgramDisplay: React.FC<Props> = ({
                       onUpdateTimes={onUpdateTimes}
                       disabled={disabled}
                     />
-                  </div>
-                )}
+                  ) : (
+                    <span style={{ color: '#bbb', fontSize: 10 }}>пусто</span>
+                  )}
+                </div>
               </div>
             </SortableItem>
           );

@@ -19,6 +19,7 @@ const writeMaps = (maps: SavedMap[]) => {
 
 export const useMaps = () => {
   const [maps, setMaps] = useState<SavedMap[]>(readMaps);
+  const [activeMapId, setActiveMapId] = useState<string | null>(null);
 
   const update = (next: SavedMap[]) => {
     setMaps(next);
@@ -38,9 +39,15 @@ export const useMaps = () => {
       { id: Date.now().toString(), name, gridSize, strictWalls, start, finish, walls, program },
       ...maps,
     ]);
+    setActiveMapId(null);
   };
 
-  const deleteMap = (id: string) => update(maps.filter(m => m.id !== id));
+  const deleteMap = (id: string) => {
+    update(maps.filter(m => m.id !== id));
+    if (activeMapId === id) setActiveMapId(null);
+  };
+
+  const loadMap = (map: SavedMap) => setActiveMapId(map.id);
 
   const importMap = (map: SavedMap) => update([map, ...maps]);
 
@@ -56,5 +63,14 @@ export const useMaps = () => {
 
   const importLearningMaps = () => importBulk(LEARNING_MAPS);
 
-  return { maps, saveMap, deleteMap, importMap, renameMap, importLearningMaps };
+  return {
+    maps,
+    activeMapId,
+    loadMap,
+    saveMap,
+    deleteMap,
+    importMap,
+    renameMap,
+    importLearningMaps,
+  };
 };

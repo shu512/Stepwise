@@ -5,6 +5,8 @@ import type { CommandKind, Position, ProgramItem } from '../types';
 import { isSame, move } from '../utils/grid';
 import { interpret } from '../utils/interpreter';
 
+export type StopReason = 'wall' | 'stop' | null;
+
 export const useRobot = (
   wallsRef: React.MutableRefObject<Position[]>,
   start: Position,
@@ -15,14 +17,12 @@ export const useRobot = (
   const [robot, setRobot] = useState<Position>(start);
   const [isRunning, setIsRunning] = useState(false);
   const [message, setMessage] = useState('');
-  const [isError, setIsError] = useState(false);
+  const [stopReason, setStopReason] = useState<StopReason>(null);
 
   const robotRef = useRef<Position>(start);
   const intervalRef = useRef<number | null>(null);
   const generatorRef = useRef<Generator<string> | null>(null);
 
-  // Using refs for start/finish/gridSize/strictWalls so the interval closure
-  // always reads the latest values without needing to restart.
   const startRef = useRef(start);
   const finishRef = useRef(finish);
   const gridSizeRef = useRef(gridSize);
@@ -46,7 +46,7 @@ export const useRobot = (
     robotRef.current = startRef.current;
     setRobot(startRef.current);
     setMessage('');
-    setIsError(false);
+    setStopReason(null);
     setIsRunning(true);
 
     generatorRef.current = interpret(program, () => ({
@@ -63,6 +63,7 @@ export const useRobot = (
       if (result.done) {
         clearInterval(intervalRef.current!);
         setIsRunning(false);
+
         if (isSame(robotRef.current, finishRef.current)) {
           setMessage('🎉 Достиг финиша!');
           confetti({
@@ -71,6 +72,9 @@ export const useRobot = (
             origin: { y: 0.6 },
             colors: ['#2a9d8f', '#457b9d', '#e63946', '#f9c74f', '#90be6d'],
           });
+        } else if (result.value === 'stop') {
+          setStopReason('stop');
+          setMessage('⛔ Остановлено');
         }
         return;
       }
@@ -86,7 +90,7 @@ export const useRobot = (
       if (next === null) {
         clearInterval(intervalRef.current!);
         setIsRunning(false);
-        setIsError(true);
+        setStopReason('wall');
         setMessage('💥 Врезался в стену!');
         return;
       }
@@ -102,16 +106,16 @@ export const useRobot = (
     robotRef.current = start;
     setRobot(start);
     setIsRunning(false);
-    setIsError(false);
+    setStopReason(null);
     setMessage('');
   };
 
   const teleport = (pos: Position) => {
     robotRef.current = pos;
     setRobot(pos);
+    setStopReason(null);
     setMessage('');
-    setIsError(false);
   };
 
-  return { robot, isRunning, isError, message, runProgram, reset, teleport };
+  return { robot, isRunning, stopReason, message, runProgram, reset, teleport };
 };

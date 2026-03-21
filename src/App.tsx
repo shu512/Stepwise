@@ -32,7 +32,7 @@ const App: React.FC = () => {
     loadGrid,
     resetGrid,
   } = useGrid(ui.gridSize);
-  const { robot, isRunning, isError, message, runProgram, reset, teleport } = useRobot(
+  const { robot, isRunning, stopReason, message, runProgram, reset, teleport } = useRobot(
     wallsRef,
     start,
     finish,
@@ -61,7 +61,16 @@ const App: React.FC = () => {
     canElse,
     isEditing,
   } = useProgram();
-  const { maps, saveMap, deleteMap, importMap, renameMap, importLearningMaps } = useMaps();
+  const {
+    maps,
+    saveMap,
+    deleteMap,
+    importMap,
+    renameMap,
+    importLearningMaps,
+    activeMapId,
+    loadMap,
+  } = useMaps();
 
   const programRef = useRef(program);
   useEffect(() => {
@@ -93,6 +102,7 @@ const App: React.FC = () => {
   };
 
   const handleLoadMap = (map: SavedMap) => {
+    loadMap(map);
     ui.setGridSize(map.gridSize);
     ui.setStrictWalls(map.strictWalls ?? false);
     resetGrid(map.gridSize);
@@ -124,7 +134,7 @@ const App: React.FC = () => {
         }}
       >
         {ui.showCodeGeneration && (
-          <div style={{ paddingTop: 38 }}>
+          <div style={{ paddingTop: 38, position: 'sticky', top: 24 }}>
             <CodePanel program={program} lang={ui.lang} />
           </div>
         )}
@@ -161,7 +171,7 @@ const App: React.FC = () => {
             walls={walls}
             isRunning={isRunning || ui.showManual}
             isManual={ui.showManual}
-            isError={isError}
+            stopReason={stopReason}
             onCellClick={(row, col) => {
               if (ui.showManual) {
                 teleport({ row, col });
@@ -253,9 +263,10 @@ const App: React.FC = () => {
         </div>
 
         {ui.showMaps && (
-          <div style={{ paddingTop: 8 }}>
+          <div style={{ paddingTop: 8, position: 'sticky', top: 24 }}>
             <MapsSidebar
               maps={maps}
+              activeMapId={activeMapId}
               currentStart={start}
               currentFinish={finish}
               currentWalls={walls}

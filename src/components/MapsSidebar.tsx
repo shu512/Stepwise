@@ -4,6 +4,7 @@ import type { Position, ProgramItem, SavedMap } from '../types';
 
 type Props = {
   maps: SavedMap[];
+  activeMapId: string | null;
   currentStart: Position;
   currentFinish: Position;
   currentWalls: Position[];
@@ -28,6 +29,7 @@ type Props = {
 
 export const MapsSidebar: React.FC<Props> = ({
   maps,
+  activeMapId,
   currentStart,
   currentFinish,
   currentWalls,
@@ -115,7 +117,9 @@ export const MapsSidebar: React.FC<Props> = ({
 
   const btn = (extra?: React.CSSProperties): React.CSSProperties => ({
     padding: '4px 10px',
-    border: '1px solid #b0a090',
+    borderWidth: '1px',
+    borderStyle: 'solid',
+    borderColor: '#b0a090',
     borderRadius: 3,
     background: COLOR_BG,
     cursor: 'pointer',
@@ -259,81 +263,93 @@ export const MapsSidebar: React.FC<Props> = ({
         }}
       >
         {maps.length === 0 && <span style={{ color: COLOR_BORDER, fontSize: 11 }}>пусто</span>}
-        {maps.map(map => (
-          <div key={map.id} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-            {editingId === map.id ? (
-              <input
-                autoFocus
-                value={editingName}
-                onChange={e => setEditingName(e.target.value)}
-                onBlur={commitEdit}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') commitEdit();
-                  if (e.key === 'Escape') setEditingId(null);
-                }}
-                style={inputStyle}
-              />
-            ) : (
+        {maps.map(map => {
+          const isActive = map.id === activeMapId;
+          return (
+            <div
+              key={map.id}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                borderLeft: isActive ? '3px solid #4caf50' : '3px solid transparent',
+              }}
+            >
+              {editingId === map.id ? (
+                <input
+                  autoFocus
+                  value={editingName}
+                  onChange={e => setEditingName(e.target.value)}
+                  onBlur={commitEdit}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') commitEdit();
+                    if (e.key === 'Escape') setEditingId(null);
+                  }}
+                  style={inputStyle}
+                />
+              ) : (
+                <button
+                  onClick={() => onLoad(map)}
+                  onDoubleClick={() => startEditing(map)}
+                  style={btn({
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  })}
+                  title={map.name}
+                >
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor:
+                        map.program && map.program.length > 0 ? '#4caf50' : '#d0c8b8',
+                      marginRight: 4,
+                      flexShrink: 0,
+                      verticalAlign: 'middle',
+                    }}
+                    title={map.program?.length ? 'С программой' : 'Без программы'}
+                  />
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: 7,
+                      height: 7,
+                      borderRadius: '50%',
+                      backgroundColor: map.strictWalls ? '#e63946' : '#d0c8b8',
+                      marginRight: 5,
+                      flexShrink: 0,
+                      verticalAlign: 'middle',
+                    }}
+                    title={map.strictWalls ? 'Столкновения включены' : 'Без столкновений'}
+                  />
+                  {map.name}
+                </button>
+              )}
               <button
-                onClick={() => onLoad(map)}
-                onDoubleClick={() => startEditing(map)}
+                onClick={() => handleExport(map)}
                 style={btn({
-                  flex: 1,
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
+                  padding: '4px 7px',
+                  flexShrink: 0,
+                  color: copyFeedback === map.id ? '#4caf50' : COLOR_TEXT,
                 })}
-                title={map.name}
+                title="Экспортировать"
               >
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    backgroundColor: map.program && map.program.length > 0 ? '#4caf50' : '#d0c8b8',
-                    marginRight: 4,
-                    flexShrink: 0,
-                    verticalAlign: 'middle',
-                  }}
-                  title={map.program?.length ? 'С программой' : 'Без программы'}
-                />
-                <span
-                  style={{
-                    display: 'inline-block',
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    backgroundColor: map.strictWalls ? '#e63946' : '#d0c8b8',
-                    marginRight: 5,
-                    flexShrink: 0,
-                    verticalAlign: 'middle',
-                  }}
-                  title={map.strictWalls ? 'Столкновения включены' : 'Без столкновений'}
-                />
-                {map.name}
+                {copyFeedback === map.id ? '✓' : '↑'}
               </button>
-            )}
-            <button
-              onClick={() => handleExport(map)}
-              style={btn({
-                padding: '4px 7px',
-                flexShrink: 0,
-                color: copyFeedback === map.id ? '#4caf50' : COLOR_TEXT,
-              })}
-              title="Экспортировать"
-            >
-              {copyFeedback === map.id ? '✓' : '↑'}
-            </button>
-            <button
-              onClick={() => onDelete(map.id)}
-              style={btn({ padding: '4px 7px', color: '#c0392b', flexShrink: 0 })}
-              title="Удалить"
-            >
-              ✕
-            </button>
-          </div>
-        ))}
+              <button
+                onClick={() => onDelete(map.id)}
+                style={btn({ padding: '4px 7px', color: '#c0392b', flexShrink: 0 })}
+                title="Удалить"
+              >
+                ✕
+              </button>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
