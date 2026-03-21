@@ -36,11 +36,9 @@ export const useMaps = () => {
     walls: Position[],
     program?: ProgramItem[],
   ) => {
-    update([
-      { id: Date.now().toString(), name, gridSize, strictWalls, start, finish, walls, program },
-      ...maps,
-    ]);
-    setActiveMapId(null);
+    const id = Date.now().toString();
+    update([{ id, name, gridSize, strictWalls, start, finish, walls, program }, ...maps]);
+    setActiveMapId(id);
   };
 
   const deleteMap = (id: string) => {

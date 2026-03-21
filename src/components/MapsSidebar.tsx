@@ -196,7 +196,7 @@ export const MapsSidebar: React.FC<Props> = ({
 
   const handleSaveStart = () => {
     setSaving(true);
-    setSaveName(`карта ${maps.length + 1}`);
+    setSaveName(`Карта ${maps.length + 1}`);
   };
   const handleSaveCommit = () => {
     if (!saveName.trim()) return;

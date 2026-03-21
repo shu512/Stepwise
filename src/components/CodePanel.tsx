@@ -33,7 +33,7 @@ export const CodePanel: React.FC<Props> = ({ program, lang }) => {
           borderBottomRightRadius: visible ? 0 : 3,
         }}
       >
-        {visible ? '▾' : '▸'} посмотреть как это выглядит на {LANG_LABELS[lang]}
+        {visible ? '▾' : '▸'} Посмотреть как это выглядит на {LANG_LABELS[lang]}
       </button>
 
       {visible && (

@@ -45,18 +45,14 @@ export const useRobot = (
   const changeSpeed = (multiplier: number) => {
     setSpeed(multiplier);
     stepDelayRef.current = STEP_DELAY / multiplier;
-
-    if (intervalRef.current !== null) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = window.setInterval(tick, stepDelayRef.current);
-    }
   };
 
   const tick = () => {
     const result = generatorRef.current!.next();
 
     if (result.done) {
-      clearInterval(intervalRef.current!);
+      generatorRef.current = null;
+      clearTimeout(intervalRef.current!);
       setIsRunning(false);
 
       if (isSame(robotRef.current, finishRef.current)) {
@@ -71,7 +67,7 @@ export const useRobot = (
         setStopReason('stop');
         setMessage('⛔ Остановлен');
       }
-      return;
+      return false;
     }
 
     const next = move(
@@ -83,15 +79,24 @@ export const useRobot = (
     );
 
     if (next === null) {
-      clearInterval(intervalRef.current!);
+      clearTimeout(intervalRef.current!);
       setIsRunning(false);
       setStopReason('wall');
       setMessage('💥 Врезался в стену!');
-      return;
+      return false;
     }
 
     robotRef.current = next;
     setRobot(next);
+    return true;
+  };
+
+  const scheduleNext = () => {
+    intervalRef.current = window.setTimeout(() => {
+      if (!generatorRef.current) return;
+      const shouldContinue = tick();
+      if (shouldContinue) scheduleNext();
+    }, stepDelayRef.current);
   };
 
   const runProgram = (program: ProgramItem[]) => {
@@ -111,11 +116,11 @@ export const useRobot = (
       gridSize: gridSizeRef.current,
     }));
 
-    intervalRef.current = window.setInterval(tick, stepDelayRef.current);
+    scheduleNext();
   };
 
   const reset = () => {
-    clearInterval(intervalRef.current!);
+    clearTimeout(intervalRef.current!);
     generatorRef.current = null;
     robotRef.current = start;
     setRobot(start);
