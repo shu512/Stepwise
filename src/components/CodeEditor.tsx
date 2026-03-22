@@ -11,8 +11,8 @@ import type { Lang } from '../utils/codegen';
 
 const PLACEHOLDERS: Record<Lang, string> = {
   python: `UP()
-  for i in range(3):
-    RIGHT()
+for i in range(3):
+  RIGHT()
 `,
   c: `#include <stdio.h>
 
@@ -49,9 +49,9 @@ int main() {
   }
 }`,
   javascript: `UP();
-  for (let i = 0; i < 3; i++) {
-    RIGHT();
-  }
+for (let i = 0; i < 3; i++) {
+  RIGHT();
+}
 `,
 };
 

@@ -31,10 +31,7 @@ const CONDITIONS: { value: Condition; label: string }[] = [
   { value: 'wall_right', label: 'стена справа' },
 ];
 
-const MOVE_COMMANDS: CommandKind[] = ['UP', 'DOWN', 'LEFT', 'RIGHT', 'STOP'];
 const SPEEDS = [0.5, 1, 2, 4];
-
-const Divider = () => <span style={{ color: '#c0b0a0', fontSize: 16, userSelect: 'none' }}>|</span>;
 
 const btn = (extra?: React.CSSProperties): React.CSSProperties => ({
   padding: '5px 12px',
@@ -53,6 +50,10 @@ const btn = (extra?: React.CSSProperties): React.CSSProperties => ({
 
 const disabledBtn = (extra?: React.CSSProperties): React.CSSProperties =>
   btn({ opacity: 0.4, cursor: 'not-allowed', ...extra });
+
+const vDivider = (
+  <div style={{ width: 1, background: '#d0c8b8', alignSelf: 'stretch', margin: '0 4px' }} />
+);
 
 export const Controls: React.FC<Props> = ({
   isRunning,
@@ -83,22 +84,44 @@ export const Controls: React.FC<Props> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>
+    <div
+      style={{
+        display: 'flex',
+        gap: 8,
+        alignItems: 'flex-start',
+        flexWrap: 'wrap',
+        justifyContent: 'center',
+      }}
+    >
       <div
         style={{
-          display: 'flex',
-          gap: 6,
-          alignItems: 'center',
-          flexWrap: 'wrap',
-          justifyContent: 'center',
+          display: 'grid',
+          gridTemplateColumns: 'repeat(3, auto)',
+          gridTemplateRows: 'repeat(2, auto)',
+          gap: 3,
         }}
       >
-        {MOVE_COMMANDS.map(cmd => (
-          <DraggableCmd key={cmd} cmd={cmd} disabled={isRunning} onClick={() => onCommand(cmd)} />
-        ))}
+        <DraggableCmd cmd="UP" disabled={isRunning} onClick={() => onCommand('UP')} />
+        <DraggableCmd cmd="DOWN" disabled={isRunning} onClick={() => onCommand('DOWN')} />
+        <button
+          disabled={isRunning}
+          onClick={() => onCommand('STOP')}
+          style={{
+            ...(isRunning ? disabledBtn({ color: '#c0392b' }) : btn({ color: '#c0392b' })),
+            gridRow: '1 / 3',
+            gridColumn: 3,
+            alignSelf: 'stretch',
+          }}
+        >
+          STOP
+        </button>
+        <DraggableCmd cmd="LEFT" disabled={isRunning} onClick={() => onCommand('LEFT')} />
+        <DraggableCmd cmd="RIGHT" disabled={isRunning} onClick={() => onCommand('RIGHT')} />
+      </div>
 
-        <Divider />
+      {vDivider}
 
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 3 }}>
         <button
           disabled={isRunning}
           onClick={onLoopStart}
@@ -110,9 +133,15 @@ export const Controls: React.FC<Props> = ({
         >
           LOOP START
         </button>
-
         {isInLoop ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+            <button
+              onClick={handleLoopEnd}
+              disabled={isRunning}
+              style={btn({ background: '#c8e6c9', borderColor: '#4caf50' })}
+            >
+              LOOP END
+            </button>
             <span style={{ fontSize: 12, color: '#a09080' }}>×</span>
             <input
               type="number"
@@ -123,8 +152,8 @@ export const Controls: React.FC<Props> = ({
                 if (e.key === 'Enter') handleLoopEnd();
               }}
               style={{
-                width: 44,
-                padding: '4px 6px',
+                width: 36,
+                padding: '4px',
                 border: '1px solid #c0a030',
                 borderRadius: 3,
                 background: COLOR_BG_LIGHT,
@@ -136,26 +165,25 @@ export const Controls: React.FC<Props> = ({
                 textAlign: 'center',
               }}
             />
-            <button
-              onClick={handleLoopEnd}
-              disabled={isRunning}
-              style={btn({ background: '#c8e6c9', borderColor: '#4caf50' })}
-            >
-              LOOP END
-            </button>
           </div>
         ) : (
           <button disabled style={disabledBtn()}>
             LOOP END
           </button>
         )}
+      </div>
 
-        <Divider />
+      {vDivider}
 
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 3 }}>
         <select
           disabled={isRunning}
           value={selectedCondition}
-          onChange={e => setSelectedCondition(e.target.value as Condition)}
+          onChange={e => {
+            const condition = e.target.value as Condition;
+            setSelectedCondition(condition);
+            if (!isRunning) onIfStart(condition);
+          }}
           style={{
             padding: '5px 8px',
             border: '1px solid #b0a090',
@@ -174,39 +202,65 @@ export const Controls: React.FC<Props> = ({
             </option>
           ))}
         </select>
+        <div style={{ display: 'flex', gap: 3 }}>
+          <button
+            disabled={isRunning}
+            onClick={() => onIfStart(selectedCondition)}
+            style={
+              isRunning ? disabledBtn() : btn({ background: '#fff8e8', borderColor: '#c0a030' })
+            }
+          >
+            IF
+          </button>
+          <button
+            disabled={isRunning || !canElse}
+            onClick={onIfElse}
+            style={
+              isRunning || !canElse
+                ? disabledBtn()
+                : btn({ background: '#fde8e8', borderColor: '#e08080' })
+            }
+          >
+            ELSE
+          </button>
+          <button
+            disabled={isRunning || !isInIf}
+            onClick={onIfEnd}
+            style={
+              isRunning || !isInIf
+                ? disabledBtn()
+                : btn({ background: '#c8e6c9', borderColor: '#4caf50' })
+            }
+          >
+            IF END
+          </button>
+        </div>
+      </div>
 
-        <button
-          disabled={isRunning}
-          onClick={() => onIfStart(selectedCondition)}
-          style={isRunning ? disabledBtn() : btn({ background: '#fff8e8', borderColor: '#c0a030' })}
-        >
-          IF
-        </button>
-        <button
-          disabled={isRunning || !canElse}
-          onClick={onIfElse}
-          style={
-            isRunning || !canElse
-              ? disabledBtn()
-              : btn({ background: '#fde8e8', borderColor: '#e08080' })
-          }
-        >
-          ELSE
-        </button>
-        <button
-          disabled={isRunning || !isInIf}
-          onClick={onIfEnd}
-          style={
-            isRunning || !isInIf
-              ? disabledBtn()
-              : btn({ background: '#c8e6c9', borderColor: '#4caf50' })
-          }
-        >
-          IF END
-        </button>
+      {vDivider}
 
-        <Divider />
-
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 3 }}>
+        <div style={{ display: 'flex', gap: 3 }}>
+          <button
+            disabled={isRunning}
+            onClick={onRun}
+            style={btn({
+              background: '#c8e6c9',
+              borderColor: '#4caf50',
+              opacity: isRunning ? 0.4 : 1,
+              flex: 1,
+            })}
+          >
+            {isRunning ? <Spinner /> : 'RUN'}
+          </button>
+          <button
+            disabled={!isRunning}
+            onClick={onReset}
+            style={!isRunning ? disabledBtn() : btn()}
+          >
+            RESET
+          </button>
+        </div>
         <button
           disabled={isRunning || !hasProgram}
           onClick={onClear}
@@ -216,9 +270,11 @@ export const Controls: React.FC<Props> = ({
         >
           CLEAR
         </button>
+      </div>
 
-        <Divider />
+      {vDivider}
 
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, auto)', gap: 3 }}>
         {SPEEDS.map(s => (
           <button
             key={s}
@@ -234,23 +290,6 @@ export const Controls: React.FC<Props> = ({
             {s}×
           </button>
         ))}
-
-        <Divider />
-
-        <button
-          disabled={isRunning}
-          onClick={onRun}
-          style={btn({
-            background: '#c8e6c9',
-            borderColor: '#4caf50',
-            opacity: isRunning ? 0.4 : 1,
-          })}
-        >
-          {isRunning ? <Spinner /> : 'RUN'}
-        </button>
-        <button disabled={!isRunning} onClick={onReset} style={!isRunning ? disabledBtn() : btn()}>
-          RESET
-        </button>
       </div>
     </div>
   );
